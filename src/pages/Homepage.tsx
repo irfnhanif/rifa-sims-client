@@ -20,27 +20,31 @@ import InventoryIcon from "@mui/icons-material/Inventory2Outlined";
 import HistoryIcon from "@mui/icons-material/History";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useNavigate } from "react-router-dom";
 
-interface HomePageProps {}
+interface HomePage {}
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ReactElement;
+  path: string;
 }
 
-const HomePage: React.FC<HomePageProps> = () => {
+const HomePage: React.FC<HomePage> = () => {
   const theme = useTheme();
+  const navigate = useNavigate()
 
   const navigationItems: NavItem[] = [
-    { id: "daftar-barang", label: "Daftar Barang", icon: <ListAltIcon /> },
-    { id: "stok-barang", label: "Stok Barang", icon: <InventoryIcon /> },
+    { id: "items", label: "Daftar Barang", icon: <ListAltIcon />, path: "/items" },
+    { id: "stocks", label: "Stok Barang", icon: <InventoryIcon />, path: "/item-stocks" },
     {
       id: "riwayat-perubahan",
       label: "Riwayat Perubahan",
       icon: <HistoryIcon />,
+      path: "/stock-change-history"
     },
-    { id: "scan-barcode", label: "Scan Barcode", icon: <QrCodeScannerIcon /> },
+    { id: "scan-barcode", label: "Scan Barcode", icon: <QrCodeScannerIcon />, path: "scan" },
   ];
 
   const primaryColor = "#2D3648";
