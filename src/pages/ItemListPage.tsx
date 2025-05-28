@@ -18,131 +18,119 @@ import {
   TablePagination,
   useTheme,
   Tooltip,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 
 // Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
-interface ItemListPage {
+interface ItemListPageProps {
   // onBack?: () => void;
 }
 
 interface Item {
-  id: string; // UUID
+  id: string;
   name: string;
   barcode: string;
   description: string;
 }
 
-const createMockItem = (
-  idSuffix: number,
-  name: string,
-  barcode: string,
-  description: string
-): Item => ({
-  id: `uuid-item-${idSuffix}-${Date.now()}`,
-  name,
-  barcode,
-  description,
-});
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data: Item[];
+  errors: null | string[];
+}
 
-const mockItems: Item[] = [
-  createMockItem(
-    1,
-    'Laptop Pro 15"',
-    "LP15-2025-001",
-    "High-performance laptop for professionals with a 15-inch Retina display, 16GB RAM, and 512GB SSD. Ideal for graphic design and video editing."
-  ),
-  createMockItem(
-    2,
-    "Wireless Ergonomic Mouse",
-    "WM-ERG0-002",
-    "Ergonomically designed wireless mouse with adjustable DPI settings and 6 programmable buttons. Long battery life."
-  ),
-  createMockItem(
-    3,
-    "Mechanical Gaming Keyboard",
-    "MK-RGB-003",
-    "RGB backlit mechanical keyboard with blue switches, N-key rollover, and dedicated media controls. Durable aluminum frame."
-  ),
-  createMockItem(
-    4,
-    "USB-C Multiport Hub",
-    "UCHUB-7IN1-004",
-    "7-in-1 USB-C hub with HDMI, 3x USB 3.0 ports, SD/MicroSD card readers, and USB-C Power Delivery."
-  ),
-  createMockItem(
-    5,
-    '27" QHD IPS Monitor',
-    "MON27-QHD-IPS-005",
-    "27-inch QHD (2560x1440) IPS monitor with 75Hz refresh rate, thin bezels, and wide viewing angles. Excellent color accuracy."
-  ),
-  createMockItem(
-    6,
-    "Adjustable Standing Desk",
-    "DESK-ADJ-BLK-006",
-    "Electric height-adjustable standing desk with a spacious work surface and memory presets. Promotes better posture."
-  ),
-  createMockItem(
-    7,
-    "Smart LED Desk Lamp",
-    "LAMP-LED-SMRT-007",
-    "Smart LED desk lamp with adjustable brightness, color temperature, and app control. Features a built-in USB charging port."
-  ),
-  createMockItem(
-    8,
-    "Flagship Smartphone Z",
-    "PHONE-Z-256-008",
-    "Latest generation flagship smartphone with a stunning OLED display, advanced camera system, and 256GB storage. 5G capable."
-  ),
-  createMockItem(
-    9,
-    "10-inch Android Tablet",
-    "TAB-A10-128-009",
-    "Versatile 10-inch Android tablet with 128GB storage, octa-core processor, and long-lasting battery. Great for media and productivity."
-  ),
-  createMockItem(
-    10,
-    "Full HD Webcam Pro",
-    "WCAM-FHD-PRO-010",
-    "Full HD 1080p webcam with built-in microphone, autofocus, and low-light correction. Perfect for video conferencing and streaming."
-  ),
-];
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const ItemListPage: React.FC<ItemListPage> = (
-  {
-    /* onBack */
+const BEARER_TOKEN =
+  "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJFTVBMT1lFRSJdLCJzdWIiOiJhY2NlcHRlZGVtcCIsImlhdCI6MTc0ODQzNzI0NiwiZXhwIjoxNzQ4NTIzNjQ2fQ.VRRlTiEkyYdIWBFAm5U83uFEzyufQ4EGySJxWq3Un3s";
+
+const fetchItems = async (
+  page: number,
+  size: number,
+  name?: string
+): Promise<Item[]> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  if (name && name.trim()) {
+    params.append("name", name.trim().toLowerCase());
   }
-) => {
+
+  const response = await fetch(`${BASE_URL}/items?${params}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${BEARER_TOKEN}`,
+    },
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch items");
+  }
+  const result: ApiResponse = await response.json();
+  return result.data;
+};
+
+const ItemListPage: React.FC<ItemListPageProps> = () => {
   const theme = useTheme();
   const primaryColor = "#2D3648";
-  const primaryColorHover = "#1E2532"; // Darker shade for hover on primaryColor buttons
+  const primaryColorHover = "#1E2532";
   const lightButtonBackground = "#EDF0F7";
   const iconActionColor = "#2D3648";
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // For local filtering
+  const [serverSearchQuery, setServerSearchQuery] = useState(""); // For server-side search
+
+  const {
+    data: items = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["items", page, rowsPerPage, serverSearchQuery],
+    queryFn: () => fetchItems(page, rowsPerPage, serverSearchQuery),
+  });
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(event.target.value.toLowerCase());
+    setSearchTerm(event.target.value);
+    setPage(0); // Reset page when searching locally
+  };
+
+  const handleServerSearch = () => {
+    setServerSearchQuery(searchTerm);
     setPage(0);
   };
 
-  const filteredItems = mockItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm) ||
-      item.barcode.toLowerCase().includes(searchTerm) ||
-      item.description.toLowerCase().includes(searchTerm)
-  );
+  const handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      handleServerSearch();
+    }
+  };
 
-  const handleChangePage = (event: unknown, newPage: number) => {
+  // Local filtering (case-insensitive)
+  const filteredItems = items.filter((item: Item) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(searchLower) ||
+      item.barcode.toLowerCase().includes(searchLower) ||
+      (item.description && item.description.toLowerCase().includes(searchLower))
+    );
+  });
+
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
@@ -153,10 +141,37 @@ const ItemListPage: React.FC<ItemListPage> = (
     setPage(0);
   };
 
+  // Use filtered items for pagination
   const paginatedItems = filteredItems.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
   );
+
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Error loading items:{" "}
+          {error instanceof Error ? error.message : "Unknown error"}
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box
@@ -203,29 +218,45 @@ const ItemListPage: React.FC<ItemListPage> = (
               p: 2,
               mb: 3,
               display: "flex",
-              flexDirection: "row", // Ensures it's always a row
+              flexDirection: "row",
               alignItems: "center",
-              gap: 2, // Spacing between TextField and the buttons Box
+              gap: 2,
             }}
           >
             <TextField
               fullWidth
               variant="outlined"
               size="small"
-              placeholder="Cari barang"
-              value={searchTerm} 
+              placeholder="Cari barang (klik ikon search atau tekan Enter untuk mencari di server)"
+              value={searchTerm}
               onChange={handleSearchChange}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-                sx: { borderRadius: "6px" },
+              onKeyUp={handleKeyUp}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <Tooltip title="Cari barang di server">
+                        <IconButton
+                          onClick={handleServerSearch}
+                          edge="end"
+                          sx={{
+                            color: primaryColor,
+                            "&:hover": {
+                              backgroundColor: theme.palette.action.hover,
+                            },
+                          }}
+                        >
+                          <SearchIcon />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: "6px" },
+                },
               }}
               sx={{
-                flexGrow: 1, // Allows TextField to grow and shrink
-                minWidth: "150px", // Prevents TextField from becoming too small
+                flexGrow: 1,
+                minWidth: "150px",
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": { borderColor: "#CBD2E0" },
                   "&:hover fieldset": { borderColor: primaryColor },
@@ -242,7 +273,7 @@ const ItemListPage: React.FC<ItemListPage> = (
               sx={{
                 display: "flex",
                 gap: 1.5,
-                flexShrink: 0 /* Prevents buttons from shrinking */,
+                flexShrink: 0,
               }}
             >
               <Tooltip title="Reload Data">
@@ -255,7 +286,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                     "&:hover": { background: theme.palette.grey[300] },
                   }}
                   aria-label="reload data"
-                  // onClick={() => { /* Add your reload logic here */ }}
+                  onClick={() => refetch()}
                 >
                   <RefreshIcon />
                 </IconButton>
@@ -270,7 +301,6 @@ const ItemListPage: React.FC<ItemListPage> = (
                     "&:hover": { background: primaryColorHover },
                   }}
                   aria-label="add item"
-                  // onClick={() => { /* Add your add item logic here */ }}
                 >
                   <AddIcon />
                 </IconButton>
@@ -291,7 +321,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                       color: primaryColor,
                       fontFamily: "Inter, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: "25%",
+                      width: "30%",
                     }}
                   >
                     Nama Barang
@@ -302,7 +332,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                       color: primaryColor,
                       fontFamily: "Inter, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: "20%",
+                      width: "25%",
                     }}
                   >
                     Barcode
@@ -313,7 +343,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                       color: primaryColor,
                       fontFamily: "Inter, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: "35%",
+                      width: "30%",
                     }}
                   >
                     Deskripsi
@@ -324,7 +354,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                       fontWeight: "bold",
                       color: primaryColor,
                       fontFamily: "Inter, sans-serif",
-                      width: "20%",
+                      width: "15%",
                     }}
                   >
                     Aksi
@@ -333,7 +363,7 @@ const ItemListPage: React.FC<ItemListPage> = (
               </TableHead>
               <TableBody>
                 {paginatedItems.length > 0 ? (
-                  paginatedItems.map((item) => (
+                  paginatedItems.map((item: Item) => (
                     <TableRow
                       key={item.id}
                       sx={{
@@ -371,7 +401,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                           verticalAlign: "top",
                         }}
                       >
-                        {item.description}
+                        {item.description || "-"}
                       </TableCell>
                       <TableCell align="center" sx={{ verticalAlign: "top" }}>
                         <Box
@@ -379,14 +409,14 @@ const ItemListPage: React.FC<ItemListPage> = (
                             display: "flex",
                             justifyContent: "center",
                             alignItems: "center",
-                            gap: 2,
+                            gap: 1,
                           }}
                         >
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
                               sx={{
-                                padding: "10px",
+                                padding: "8px",
                                 background: lightButtonBackground,
                                 borderRadius: "6px",
                                 color: iconActionColor,
@@ -402,7 +432,7 @@ const ItemListPage: React.FC<ItemListPage> = (
                             <IconButton
                               size="small"
                               sx={{
-                                padding: "10px",
+                                padding: "8px",
                                 background: lightButtonBackground,
                                 borderRadius: "6px",
                                 color: iconActionColor,
@@ -421,7 +451,9 @@ const ItemListPage: React.FC<ItemListPage> = (
                 ) : (
                   <TableRow>
                     <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                      Tidak ada barang yang cocok dengan pencarian Anda.
+                      {searchTerm
+                        ? `Tidak ada barang yang cocok dengan pencarian "${searchTerm}"`
+                        : "Tidak ada data barang"}
                     </TableCell>
                   </TableRow>
                 )}
