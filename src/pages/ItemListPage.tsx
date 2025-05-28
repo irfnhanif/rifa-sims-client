@@ -31,6 +31,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ItemListPageProps {
   // onBack?: () => void;
 }
@@ -264,7 +265,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                 },
                 "& .MuiInputBase-input": {
                   fontSize: "16px",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "Roboto, sans-serif",
                   color: "#2D3648",
                 },
               }}
@@ -319,7 +320,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                     sx={{
                       fontWeight: "bold",
                       color: primaryColor,
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
                       width: "30%",
                     }}
@@ -330,7 +331,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                     sx={{
                       fontWeight: "bold",
                       color: primaryColor,
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
                       width: "25%",
                     }}
@@ -341,7 +342,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                     sx={{
                       fontWeight: "bold",
                       color: primaryColor,
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
                       width: "30%",
                     }}
@@ -353,7 +354,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                     sx={{
                       fontWeight: "bold",
                       color: primaryColor,
-                      fontFamily: "Inter, sans-serif",
+                      fontFamily: "Roboto, sans-serif",
                       width: "15%",
                     }}
                   >
@@ -364,20 +365,12 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
               <TableBody>
                 {paginatedItems.length > 0 ? (
                   paginatedItems.map((item: Item) => (
-                    <TableRow
-                      key={item.id}
-                      sx={{
-                        "&:last-child td, &:last-child th": { border: 0 },
-                        "&:nth-of-type(even)": {
-                          backgroundColor: theme.palette.action.hover,
-                        },
-                      }}
-                    >
+                    <TableRow key={item.id} hover sx={{}}>
                       <TableCell
                         component="th"
                         scope="row"
                         sx={{
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: "Roboto, sans-serif",
                           borderRight: `1px solid #CBD2E0`,
                           verticalAlign: "top",
                         }}
@@ -386,7 +379,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: "Roboto, sans-serif",
                           borderRight: `1px solid #CBD2E0`,
                           verticalAlign: "top",
                         }}
@@ -395,7 +388,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontFamily: "Inter, sans-serif",
+                          fontFamily: "Roboto, sans-serif",
                           borderRight: `1px solid #CBD2E0`,
                           whiteSpace: "pre-line",
                           verticalAlign: "top",
