@@ -50,6 +50,10 @@ const HomePage: React.FC<HomePage> = () => {
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
 
+  const handleNavigation = (path: string) => {
+    navigate(path)
+  }
+
   return (
     <Box
       sx={{
@@ -115,6 +119,7 @@ const HomePage: React.FC<HomePage> = () => {
           {navigationItems.map((item) => (
             <ListItemButton
               key={item.id}
+              onClick={() => handleNavigation(item.path)}
               sx={{
                 backgroundColor: primaryColor,
                 color: "white",
