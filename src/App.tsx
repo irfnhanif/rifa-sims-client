@@ -8,10 +8,11 @@ import ItemListPage from "./pages/ItemListPage";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: parseInt(import.meta.env.REACT_QUERY_STALE_TIME),
-      gcTime: parseInt(import.meta.env.REACT_QUERY_CACHE_TIME),
-      retry: parseInt(import.meta.env.REACT_QUERY_RETRY_ATTEMPTS),
-      refetchOnWindowFocus: import.meta.env.REACT_QUERY_REFETCH_ON_WINDOW_FOCUS,
+      staleTime: parseInt(import.meta.env.VITE_REACT_QUERY_STALE_TIME),
+      gcTime: parseInt(import.meta.env.VITE_REACT_QUERY_CACHE_TIME),
+      retry: parseInt(import.meta.env.VITE_REACT_QUERY_RETRY_ATTEMPTS),
+      refetchOnWindowFocus: import.meta.env
+        .VITE_REACT_QUERY_REFETCH_ON_WINDOW_FOCUS,
     },
   },
 });
