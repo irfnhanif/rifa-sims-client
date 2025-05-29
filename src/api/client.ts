@@ -1,7 +1,7 @@
 import API_CONFIG from "../config/api";
 
 export const apiClient = {
-  get: async (url: string) => {
+  get: async (url: string, params?: URLSearchParams) => {
     const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
       method: "GET",
       headers: API_CONFIG.DEFAULT_HEADERS,
