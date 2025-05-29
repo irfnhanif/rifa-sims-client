@@ -33,14 +33,7 @@ import { fetchItems } from "../api/items";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
-
-interface ItemListPageProps {
-  // onBack?: () => void;
-}
-
-
-
-const ItemListPage: React.FC<ItemListPageProps> = () => {
+const ItemListPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
 
