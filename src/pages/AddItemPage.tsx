@@ -23,7 +23,7 @@ import AddIcon from "@mui/icons-material/AddCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
 
 interface FormData {
-  itemName: string;
+  name: string;
   description: string;
   barcode: string;
   currentStock: number | string;
@@ -31,7 +31,7 @@ interface FormData {
 }
 
 interface FormErrors {
-  itemName?: string;
+  name?: string;
   description?: string;
   barcode?: string;
   currentStock?: string;
@@ -49,7 +49,7 @@ const AddItemPage: React.FC = () => {
   const lightButtonBackground = "#EDF0F7";
 
   const [formData, setFormData] = useState<FormData>({
-    itemName: "",
+    name: "",
     description: "",
     barcode: "",
     currentStock: "",
@@ -63,13 +63,13 @@ const AddItemPage: React.FC = () => {
 
   const createItemMutation = useMutation({
     mutationFn: createItem,
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate and refetch items list
       queryClient.invalidateQueries({ queryKey: ["items"] });
 
       setErrors({ form: "Barang berhasil ditambahkan!" });
       setFormData({
-        itemName: "",
+        name: "",
         description: "",
         barcode: "",
         currentStock: "",
@@ -79,7 +79,7 @@ const AddItemPage: React.FC = () => {
       // Navigate back after success
       setTimeout(() => {
         navigate(-1);
-      }, 1500);
+      }, 500);
     },
     onError: (error: any) => {
       console.log("Error received:", error);
@@ -89,18 +89,11 @@ const AddItemPage: React.FC = () => {
       // Field mapping from backend field names to frontend field names
       const fieldMapping: Record<string, keyof FormErrors> = {
         // Backend field -> Frontend field
-        name: "itemName",
-        itemName: "itemName",
+        name: "name",
         description: "description",
         barcode: "barcode",
         currentStock: "currentStock",
-        threshold: "threshold",
-        // Additional possible backend field variations
-        stock: "currentStock",
-        stockQuantity: "currentStock",
-        minThreshold: "threshold",
-        minimumThreshold: "threshold",
-        thresholdValue: "threshold",
+        threshold: "threshold"
       };
 
       if (error.errors && Array.isArray(error.errors)) {
@@ -208,8 +201,8 @@ const AddItemPage: React.FC = () => {
 
   const validateForm = (): { isValid: boolean; newErrors: FormErrors } => {
     const newErrors: FormErrors = {};
-    if (!formData.itemName.trim()) {
-      newErrors.itemName = "Nama Barang tidak boleh kosong.";
+    if (!formData.name.trim()) {
+      newErrors.name = "Nama Barang tidak boleh kosong.";
     }
     if (!formData.barcode.trim()) {
       newErrors.barcode = "Barcode tidak boleh kosong.";
@@ -241,7 +234,7 @@ const AddItemPage: React.FC = () => {
     }
 
     const requestBody: CreateItemRequest = {
-      name: formData.itemName,
+      name: formData.name,
       description: formData.description,
       barcode: formData.barcode,
       currentStock: formData.currentStock ? Number(formData.currentStock) : 0,
@@ -359,12 +352,12 @@ const AddItemPage: React.FC = () => {
               fullWidth
               variant="outlined"
               size="small"
-              name="itemName"
-              value={formData.itemName}
+              name="name"
+              value={formData.name}
               onChange={handleInputChange}
               placeholder="Masukkan nama barang"
-              error={!!errors.itemName}
-              helperText={errors.itemName || ""}
+              error={!!errors.name}
+              helperText={errors.name || ""}
               disabled={isLoading}
               sx={{
                 ...commonTextFieldStyles,
