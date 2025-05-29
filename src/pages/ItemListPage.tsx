@@ -22,6 +22,7 @@ import {
   Alert,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 // Icons
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -30,6 +31,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import API_CONFIG from "../config/api";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface ItemListPageProps {
@@ -50,11 +52,6 @@ interface ApiResponse {
   errors: null | string[];
 }
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-const BEARER_TOKEN =
-  "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6WyJFTVBMT1lFRSJdLCJzdWIiOiJhY2NlcHRlZGVtcCIsImlhdCI6MTc0ODQzNzI0NiwiZXhwIjoxNzQ4NTIzNjQ2fQ.VRRlTiEkyYdIWBFAm5U83uFEzyufQ4EGySJxWq3Un3s";
-
 const fetchItems = async (
   page: number,
   size: number,
@@ -69,12 +66,9 @@ const fetchItems = async (
     params.append("name", name.trim().toLowerCase());
   }
 
-  const response = await fetch(`${BASE_URL}/items?${params}`, {
+  const response = await fetch(`${API_CONFIG.BASE_URL}/items?${params}`, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${BEARER_TOKEN}`,
-    },
+    headers: API_CONFIG.DEFAULT_HEADERS,
   });
   if (!response.ok) {
     throw new Error("Failed to fetch items");
@@ -85,6 +79,8 @@ const fetchItems = async (
 
 const ItemListPage: React.FC<ItemListPageProps> = () => {
   const theme = useTheme();
+  const navigate = useNavigate()
+
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
   const lightButtonBackground = "#EDF0F7";
@@ -141,6 +137,10 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+
+  const handleAddItemNav = () => {
+    navigate("/items/add")
+  }
 
   // Use filtered items for pagination
   const paginatedItems = filteredItems.slice(
@@ -302,6 +302,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
                     "&:hover": { background: primaryColorHover },
                   }}
                   aria-label="add item"
+                  onClick={handleAddItemNav}
                 >
                   <AddIcon />
                 </IconButton>
