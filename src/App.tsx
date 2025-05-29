@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider, } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import HomePage from "./pages/Homepage";
 import ItemListPage from "./pages/ItemListPage";
+import AddItemPage from "./pages/AddItemPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +25,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />}></Route>
           <Route path="/items" element={<ItemListPage />}></Route>
+          <Route path="/items/add" element={<AddItemPage />}></Route>
         </Routes>
       </Router>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false}/>}
