@@ -1,10 +1,6 @@
 import React, { useState } from "react";
 import {
   Box,
-  AppBar,
-  Toolbar,
-  Typography,
-  IconButton,
   Container,
   TextField,
   InputAdornment,
@@ -20,20 +16,22 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
+  IconButton,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
-// Icons
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
+
+import Header from "../components/Header";
+import Footer from "../components/Footer";
 import API_CONFIG from "../config/api";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+
 interface ItemListPageProps {
   // onBack?: () => void;
 }
@@ -79,7 +77,7 @@ const fetchItems = async (
 
 const ItemListPage: React.FC<ItemListPageProps> = () => {
   const theme = useTheme();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
@@ -88,8 +86,8 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [searchTerm, setSearchTerm] = useState(""); // For local filtering
-  const [serverSearchQuery, setServerSearchQuery] = useState(""); // For server-side search
+  const [searchTerm, setSearchTerm] = useState(""); 
+  const [serverSearchQuery, setServerSearchQuery] = useState(""); 
 
   const {
     data: items = [],
@@ -103,7 +101,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setPage(0); // Reset page when searching locally
+    setPage(0); 
   };
 
   const handleServerSearch = () => {
@@ -117,7 +115,10 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
     }
   };
 
-  // Local filtering (case-insensitive)
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
   const filteredItems = items.filter((item: Item) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -139,8 +140,8 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
   };
 
   const handleAddItemNav = () => {
-    navigate("/items/add")
-  }
+    navigate("/items/add");
+  };
 
   // Use filtered items for pagination
   const paginatedItems = filteredItems.slice(
@@ -186,25 +187,11 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
             : theme.palette.background.default,
       }}
     >
-      <AppBar position="static" sx={{ backgroundColor: primaryColor }}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            aria-label="back"
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{ flexGrow: 1, fontWeight: "bold" }}
-          >
-            Daftar Barang
-          </Typography>
-        </Toolbar>
-      </AppBar>
+      <Header
+        title="Daftar Barang"
+        onBackClick={handleBackClick}
+        backgroundColor={primaryColor}
+      />
 
       <Container
         component="main"
@@ -487,22 +474,7 @@ const ItemListPage: React.FC<ItemListPageProps> = () => {
         </Box>
       </Container>
 
-      <Box
-        component="footer"
-        sx={{
-          py: 2,
-          textAlign: "center",
-          backgroundColor:
-            theme.palette.mode === "light"
-              ? theme.palette.grey[200]
-              : theme.palette.grey[800],
-          borderTop: `1px solid ${theme.palette.divider}`,
-        }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          &copy; {new Date().getFullYear()} Rifa-SIMS. All rights reserved.
-        </Typography>
-      </Box>
+      <Footer />
     </Box>
   );
 };
