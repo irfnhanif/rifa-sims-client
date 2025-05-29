@@ -81,6 +81,7 @@ const AddItemPage: React.FC = () => {
         navigate(-1);
       }, 500);
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.log("Error received:", error);
 
