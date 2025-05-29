@@ -24,11 +24,14 @@ function App() {
       <Router>
         <Routes>
           <Route path="/" element={<HomePage />}></Route>
-          <Route path="/items" element={<ItemListPage />}></Route>
+          <Route path="/items">
+            <Route index element={<ItemListPage />} />
+            <Route path="add" element={<AddItemPage />} />
+          </Route>
           <Route path="/items/add" element={<AddItemPage />}></Route>
         </Routes>
       </Router>
-      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false}/>}
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }
