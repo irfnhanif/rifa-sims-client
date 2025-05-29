@@ -13,10 +13,9 @@ export interface ItemStock {
 }
 
 export interface CreateItemRequest {
-  id: string;
   name: string;
   barcode: string;
   description: string;
-  stockQuantity: number;
-  minThreshold: number;
+  currentStock: number;
+  threshold: number;
 }
