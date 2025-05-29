@@ -18,11 +18,11 @@ export const fetchItems = async (
 
   const response = await apiClient.get("/items", params);
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch items");
-  }
-
   const result: ApiResponse<Item[]> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
 
   if (!result.success) {
     throw new Error(result.message || "Failed to fetch items");
@@ -31,23 +31,33 @@ export const fetchItems = async (
   return result.data || [];
 };
 
-export const createItem = async (
-    itemData: CreateItemRequest
-) => {
-    const response = await apiClient.post("/items", itemData);
-    
-    const result: ApiResponse<Item> = await response.json()
+export const createItem = async (itemData: CreateItemRequest) => {
+  const response = await apiClient.post("/items", itemData);
 
-    if (!response.ok || !result.success) {
-      const error = new Error(result.message || "Failed to create item");
-      (error as any).errors = result.errors;
-      (error as any).status = response.status;
-      throw error;
-    }
+  const result: ApiResponse<Item> = await response.json();
 
-    if (!result.data) {
-      throw new Error("No data returned from server");
-    }
+  if (!response.ok || !result.success) {
+    const error = new Error(result.message || "Failed to create item");
+    (error as any).errors = result.errors;
+    (error as any).status = response.status;
+    throw error;
+  }
 
-    return result.data;
-}
+  if (!result.data) {
+    throw new Error("No data returned from server");
+  }
+
+  return result.data;
+};
+
+export const deleteItem = async (id: string) => {
+  const response = await apiClient.delete(`/items/${id}`);
+
+  const result: ApiResponse<void> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  return result.message;
+};
