@@ -17,8 +17,15 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -28,10 +35,11 @@ import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
 import type { Item } from "../types/item";
-import { fetchItems } from "../api/items";
+import { fetchItems, deleteItem } from "../api/items";
 
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDIalog";
 
 const ItemListPage: React.FC = () => {
   const theme = useTheme();
@@ -44,8 +52,15 @@ const ItemListPage: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [searchTerm, setSearchTerm] = useState(""); 
-  const [serverSearchQuery, setServerSearchQuery] = useState(""); 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [serverSearchQuery, setServerSearchQuery] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error",
+  });
 
   const {
     data: items = [],
@@ -57,9 +72,32 @@ const ItemListPage: React.FC = () => {
     queryFn: () => fetchItems(page, rowsPerPage, serverSearchQuery),
   });
 
+  const deleteItemMutation = useMutation({
+    mutationFn: deleteItem,
+    onSuccess: (message) => {
+      setSnackbar({
+        open: true,
+        message: message || "Item berhasil dihapus",
+        severity: "success",
+      });
+      refetch();
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    },
+    onError: (error: Error) => {
+      setSnackbar({
+        open: true,
+        message: error.message || "Gagal menghapus item",
+        severity: "error",
+      });
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
+    },
+  });
+
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setPage(0); 
+    setPage(0);
   };
 
   const handleServerSearch = () => {
@@ -75,6 +113,26 @@ const ItemListPage: React.FC = () => {
 
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const handleDeleteClick = (item: Item) => {
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (itemToDelete) {
+      deleteItemMutation.mutate(itemToDelete.id);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const filteredItems = items.filter((item: Item) => {
@@ -370,6 +428,8 @@ const ItemListPage: React.FC = () => {
                           <Tooltip title="Delete">
                             <IconButton
                               size="small"
+                              onClick={() => handleDeleteClick(item)}
+                              disabled={deleteItemMutation.isPending}
                               sx={{
                                 padding: "8px",
                                 background: lightButtonBackground,
@@ -433,6 +493,30 @@ const ItemListPage: React.FC = () => {
       </Container>
 
       <Footer />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        itemName={itemToDelete?.name}
+      />
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleSnackbarClose}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
