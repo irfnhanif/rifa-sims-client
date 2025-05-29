@@ -27,53 +27,18 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
+import type { Item } from "../types/item";
+import { fetchItems } from "../api/items";
+
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import API_CONFIG from "../config/api";
 
 
 interface ItemListPageProps {
   // onBack?: () => void;
 }
 
-interface Item {
-  id: string;
-  name: string;
-  barcode: string;
-  description: string;
-}
 
-interface ApiResponse {
-  success: boolean;
-  message: string;
-  data: Item[];
-  errors: null | string[];
-}
-
-const fetchItems = async (
-  page: number,
-  size: number,
-  name?: string
-): Promise<Item[]> => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    size: size.toString(),
-  });
-
-  if (name && name.trim()) {
-    params.append("name", name.trim().toLowerCase());
-  }
-
-  const response = await fetch(`${API_CONFIG.BASE_URL}/items?${params}`, {
-    method: "GET",
-    headers: API_CONFIG.DEFAULT_HEADERS,
-  });
-  if (!response.ok) {
-    throw new Error("Failed to fetch items");
-  }
-  const result: ApiResponse = await response.json();
-  return result.data;
-};
 
 const ItemListPage: React.FC<ItemListPageProps> = () => {
   const theme = useTheme();

@@ -2,6 +2,35 @@ import type { ApiResponse } from "../types/api";
 import type { CreateItemRequest, Item } from "../types/item";
 import { apiClient } from "./client";
 
+export const fetchItems = async (
+  page: number,
+  size: number,
+  name?: string
+): Promise<Item[]> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  if (name && name.trim()) {
+    params.append("name", name.trim().toLowerCase());
+  }
+
+  const response = await apiClient.get("/items", params);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch items");
+  }
+
+  const result: ApiResponse<Item[]> = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.message || "Failed to fetch items");
+  }
+
+  return result.data || [];
+};
+
 export const createItem = async (
     itemData: CreateItemRequest
 ) => {
