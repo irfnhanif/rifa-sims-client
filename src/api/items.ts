@@ -31,6 +31,22 @@ export const fetchItems = async (
   return result.data || [];
 };
 
+export const fetchItemById = async (id: string): Promise<Item> => {
+  const response = await apiClient.get(`/items/${id}`);
+
+  const result: ApiResponse<Item> = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.message)
+  }
+
+  if (!result.data) {
+    throw new Error("No data returned")
+  }
+
+  return result.data;
+}
+
 export const createItem = async (itemData: CreateItemRequest) => {
   const response = await apiClient.post("/items", itemData);
 
@@ -49,6 +65,25 @@ export const createItem = async (itemData: CreateItemRequest) => {
 
   return result.data;
 };
+
+export const updateItem = async (id: string, data: Partial<Item>) => {
+  const response = await apiClient.put(`/items/${id}`, data)
+
+  const result: ApiResponse<Item> = await response.json()
+
+  if (!response.ok || !result.success) {
+    const error = new Error(result.message || "Failed to update item");
+    (error as any).errors = result.errors;
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  if (!result.data) {
+    throw new Error("No data returned from server");
+  }
+
+  return result.data;
+}
 
 export const deleteItem = async (id: string) => {
   const response = await apiClient.delete(`/items/${id}`);

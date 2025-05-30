@@ -5,12 +5,7 @@ export interface Item {
   description: string;
 }
 
-export interface ItemStock {
-  id: string;
-  item: Item;
-  stockQuantity: number;
-  minThreshold: number;
-}
+
 
 export interface CreateItemRequest {
   name: string;
