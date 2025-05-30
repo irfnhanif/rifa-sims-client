@@ -58,13 +58,11 @@ const AddItemPage: React.FC = () => {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  // Define success message constant to avoid spell-check issues
   const SUCCESS_MESSAGE = "berhasil";
 
   const createItemMutation = useMutation({
     mutationFn: createItem,
     onSuccess: () => {
-      // Invalidate and refetch items list
       queryClient.invalidateQueries({ queryKey: ["items"] });
 
       setErrors({ form: "Barang berhasil ditambahkan!" });
@@ -76,32 +74,27 @@ const AddItemPage: React.FC = () => {
         threshold: "",
       });
 
-      // Navigate back after success
       setTimeout(() => {
         navigate(-1);
       }, 1000);
     },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       console.log("Error received:", error);
 
       const serverFieldErrors: FormErrors = {};
 
-      // Field mapping from backend field names to frontend field names
       const fieldMapping: Record<string, keyof FormErrors> = {
-        // Backend field -> Frontend field
         name: "name",
         description: "description",
         barcode: "barcode",
         currentStock: "currentStock",
-        threshold: "threshold"
+        threshold: "threshold",
       };
 
       if (error.errors && Array.isArray(error.errors)) {
         error.errors.forEach((errStr: string) => {
           console.log("Processing error:", errStr);
 
-          // Split by first colon only to handle cases where message contains colons
           const colonIndex = errStr.indexOf(":");
           if (colonIndex !== -1) {
             const serverFieldKey = errStr.substring(0, colonIndex).trim();
@@ -111,7 +104,6 @@ const AddItemPage: React.FC = () => {
               `Server field: "${serverFieldKey}", Message: "${errorMessage}"`
             );
 
-            // Check if we have a mapping for this field
             const formFieldKey = fieldMapping[serverFieldKey];
 
             if (formFieldKey) {
@@ -120,7 +112,6 @@ const AddItemPage: React.FC = () => {
                 `Mapped ${serverFieldKey} -> ${formFieldKey}: ${errorMessage}`
               );
             } else {
-              // If field doesn't map to a form field, add to general form error
               console.log(
                 `Unmapped field ${serverFieldKey}, adding to form error`
               );
@@ -129,7 +120,6 @@ const AddItemPage: React.FC = () => {
                 errStr;
             }
           } else {
-            // If no colon found, treat as general error
             console.log(`No colon found in error: ${errStr}`);
             serverFieldErrors.form =
               (serverFieldErrors.form ? serverFieldErrors.form + "; " : "") +
@@ -138,11 +128,9 @@ const AddItemPage: React.FC = () => {
         });
       }
 
-      // Set errors, prioritizing field-specific errors over general form error
       setErrors((prev) => ({
         ...prev,
         ...serverFieldErrors,
-        // Only set form error if no field-specific errors were found
         form:
           Object.keys(serverFieldErrors).length === 0 || serverFieldErrors.form
             ? serverFieldErrors.form ||
@@ -175,7 +163,6 @@ const AddItemPage: React.FC = () => {
       if (errors[name]) {
         setErrors((prev) => ({ ...prev, [name]: undefined }));
       }
-      // Clear form error when user starts correcting field errors
       if (errors.form) {
         setErrors((prev) => ({ ...prev, form: undefined }));
       }
@@ -194,7 +181,6 @@ const AddItemPage: React.FC = () => {
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
-    // Clear form error when user starts correcting field errors
     if (errors.form) {
       setErrors((prev) => ({ ...prev, form: undefined }));
     }
@@ -533,7 +519,6 @@ const AddItemPage: React.FC = () => {
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Centered Button Container */}
           <Box sx={{ display: "flex", justifyContent: "center", mt: "auto" }}>
             <Box
               sx={{
