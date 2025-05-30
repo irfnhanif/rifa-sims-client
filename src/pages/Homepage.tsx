@@ -22,8 +22,6 @@ import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useNavigate } from "react-router-dom";
 
-interface HomePage {}
-
 interface NavItem {
   id: string;
   label: string;
@@ -31,7 +29,7 @@ interface NavItem {
   path: string;
 }
 
-const HomePage: React.FC<HomePage> = () => {
+const HomePage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate()
 

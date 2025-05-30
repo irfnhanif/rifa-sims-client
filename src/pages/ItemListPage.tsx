@@ -109,6 +109,10 @@ const ItemListPage: React.FC = () => {
     navigate(-1);
   };
 
+  const handleEditClick = (id: string) => {
+    navigate(`/items/${id}/edit`)
+  }
+
   const handleDeleteClick = (item: Item) => {
     setItemToDelete(item);
     setDeleteDialogOpen(true);
@@ -406,6 +410,7 @@ const ItemListPage: React.FC = () => {
                           <Tooltip title="Edit">
                             <IconButton
                               size="small"
+                              onClick={() => handleEditClick(item.id)}
                               sx={{
                                 padding: "8px",
                                 background: lightButtonBackground,
