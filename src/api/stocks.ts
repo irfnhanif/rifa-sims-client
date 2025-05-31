@@ -1,5 +1,9 @@
 import type { ApiResponse } from "../types/api";
-import type { ItemStock } from "../types/item-stock";
+import type {
+  BarcodeScanResponse,
+  ItemStock,
+  ScanStockChangeRequest,
+} from "../types/item-stock";
 import { apiClient } from "./client";
 
 export const fetchItemStocks = async (
@@ -34,23 +38,56 @@ export const fetchItemStocks = async (
 export const fetchItemStockById = async (id: string): Promise<ItemStock> => {
   const response = await apiClient.get(`/item-stocks/${id}`);
 
-  const result: ApiResponse<ItemStock> = await response.json()
+  const result: ApiResponse<ItemStock> = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.message)
+    throw new Error(result.message);
   }
 
   if (!result.data) {
-    throw new Error("No data returned")
+    throw new Error("No data returned");
   }
 
   return result.data;
-}
+};
 
 export const updateItemStock = async (id: string, data: Partial<ItemStock>) => {
-  const response = await apiClient.put(`/item-stocks/${id}`, data)
+  const response = await apiClient.put(`/item-stocks/${id}`, data);
 
-  const result: ApiResponse<ItemStock> = await response.json()
+  const result: ApiResponse<ItemStock> = await response.json();
+
+  if (!response.ok || !result.success) {
+    const error = new Error(result.message || "Failed to update item");
+    (error as any).errors = result.errors;
+    (error as any).status = response.status;
+    throw error;
+  }
+
+  if (!result.data) {
+    throw new Error("No data returned from server");
+  }
+
+  return result.data;
+};
+
+export const fetchItemStockByBarcode = async (
+  barcode: string
+): Promise<BarcodeScanResponse[]> => {
+  const response = await apiClient.get(`/item-stocks/barcode/${barcode}`);
+
+  const result: ApiResponse<BarcodeScanResponse[]> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  return result.data || [];
+};
+
+export const scanUpdateItemStock = async (id: string, data: Partial<ScanStockChangeRequest>) => {
+  const response = await apiClient.patch(`/item-stocks/${id}`, data)
+
+  const result:ApiResponse<ItemStock> = await response.json()
 
   if (!response.ok || !result.success) {
     const error = new Error(result.message || "Failed to update item");
