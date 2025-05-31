@@ -29,6 +29,7 @@ import type { ItemDetailResponse } from "../../types/item";
 import { fetchItemDetailById } from "../../api/items";
 
 interface StockDataPoint {
+  [key: string]: Date | number;
   x: Date;
   stock: number;
 }
@@ -42,10 +43,31 @@ const ItemDetailPage: React.FC = () => {
 
   const [selectedTimeFrame, setSelectedTimeFrame] = useState<string>("7days");
 
+  const formatDateForJava = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  };
+
   const getDateRange = (timeFrame: string) => {
     const toDate = new Date();
     let fromDate: Date;
     switch (timeFrame) {
+      case "today":
+        fromDate = new Date(
+          toDate.getFullYear(),
+          toDate.getMonth(),
+          toDate.getDate(),
+          0,
+          0,
+          0
+        );
+        break;
       case "7days":
         fromDate = new Date(toDate.getTime() - 7 * 24 * 60 * 60 * 1000);
         break;
@@ -58,7 +80,10 @@ const ItemDetailPage: React.FC = () => {
       default:
         fromDate = new Date(toDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     }
-    return { fromDate: fromDate.toISOString(), toDate: toDate.toISOString() };
+    return {
+      fromDate: formatDateForJava(fromDate),
+      toDate: formatDateForJava(toDate),
+    };
   };
 
   const { fromDate, toDate } = getDateRange(selectedTimeFrame);
@@ -76,16 +101,16 @@ const ItemDetailPage: React.FC = () => {
   const item = itemDetailResponse?.item;
 
   const chartData = useMemo((): StockDataPoint[] => {
-    if (!itemDetailResponse?.stockAuditLog) {
+    if (!itemDetailResponse?.stockAuditLogs) {
       return [];
     }
-    return itemDetailResponse.stockAuditLog
+    return itemDetailResponse.stockAuditLogs
       .map((log) => ({
         x: new Date(log.timestamp),
         stock: log.newStock,
       }))
       .sort((a, b) => a.x.getTime() - b.x.getTime());
-  }, [itemDetailResponse?.stockAuditLog]);
+  }, [itemDetailResponse?.stockAuditLogs]);
 
   const handleTimeFrameChange = (event: SelectChangeEvent<string>) => {
     setSelectedTimeFrame(event.target.value as string);
@@ -127,7 +152,7 @@ const ItemDetailPage: React.FC = () => {
         <Header title="Error" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
           <Alert severity="error">
-            Error memuat detail barang:{" "}
+            Error loading item details:{" "}
             {fetchItemError.message || "Unknown error"}
           </Alert>
         </Container>
@@ -141,9 +166,9 @@ const ItemDetailPage: React.FC = () => {
       <Box
         sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
       >
-        <Header title="Tidak Ditemukan" onBackClick={handleBackClick} />
+        <Header title="Not Found" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
-          <Alert severity="warning">Detail barang tidak ditemukan.</Alert>
+          <Alert severity="warning">Item details not found.</Alert>
         </Container>
         <Footer />
       </Box>
@@ -163,7 +188,7 @@ const ItemDetailPage: React.FC = () => {
       }}
     >
       <Header
-        title="Detail Barang"
+        title="Item Details"
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -198,7 +223,7 @@ const ItemDetailPage: React.FC = () => {
           </Typography>
 
           <Paper elevation={2} sx={{ p: 2.5, borderRadius: "8px" }}>
-            <Typography sx={sectionLabelStyle}>Deskripsi</Typography>
+            <Typography sx={sectionLabelStyle}>Description</Typography>
             <Typography
               variant="body1"
               sx={{
@@ -235,19 +260,19 @@ const ItemDetailPage: React.FC = () => {
                 mb: 2,
               }}
             >
-              <Typography sx={sectionLabelStyle}>Trend Stok</Typography>
+              <Typography sx={sectionLabelStyle}>Stock Trend</Typography>
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel
                   id="time-frame-select-label"
                   sx={{ fontFamily: "Inter, sans-serif" }}
                 >
-                  Periode
+                  Period
                 </InputLabel>
                 <Select
                   labelId="time-frame-select-label"
                   id="time-frame-select"
                   value={selectedTimeFrame}
-                  label="Periode"
+                  label="Period"
                   onChange={handleTimeFrameChange}
                   sx={{
                     fontFamily: "Inter, sans-serif",
@@ -256,22 +281,28 @@ const ItemDetailPage: React.FC = () => {
                   }}
                 >
                   <MenuItem
+                    value="today"
+                    sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
+                  >
+                    Today
+                  </MenuItem>
+                  <MenuItem
                     value="7days"
                     sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
                   >
-                    7 Hari Terakhir
+                    Last 7 Days
                   </MenuItem>
                   <MenuItem
                     value="30days"
                     sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
                   >
-                    30 Hari Terakhir
+                    Last 30 Days
                   </MenuItem>
                   <MenuItem
                     value="90days"
                     sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
                   >
-                    90 Hari Terakhir
+                    Last 90 Days
                   </MenuItem>
                 </Select>
               </FormControl>
@@ -283,7 +314,7 @@ const ItemDetailPage: React.FC = () => {
                   series={[
                     {
                       dataKey: "stock",
-                      label: "Stok",
+                      label: "Stock",
                       color: primaryDarkColor,
                       showMark: true,
                     },
@@ -293,7 +324,7 @@ const ItemDetailPage: React.FC = () => {
                       dataKey: "x",
                       scaleType: "time",
                       valueFormatter: (date: Date) =>
-                        date.toLocaleDateString("id-ID", {
+                        date.toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                         }),
@@ -330,7 +361,7 @@ const ItemDetailPage: React.FC = () => {
                     },
                   }}
                 >
-                  <ChartsGrid horizontal strokeDasharray="3 3" />
+                  <ChartsGrid horizontal />
                   <ChartsTooltip trigger="item" />
                 </LineChart>
               ) : (
@@ -349,7 +380,7 @@ const ItemDetailPage: React.FC = () => {
                   {isLoadingItem ? (
                     <CircularProgress size={30} />
                   ) : (
-                    "Data tren stok tidak tersedia untuk periode ini."
+                    "Stock trend data not available for this period."
                   )}
                 </Typography>
               )}
