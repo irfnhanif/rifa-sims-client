@@ -45,7 +45,7 @@ const ItemListPage: React.FC = () => {
   const iconActionColor = "#2D3648";
 
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [serverSearchQuery, setServerSearchQuery] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
