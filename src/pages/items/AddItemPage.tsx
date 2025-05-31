@@ -12,11 +12,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
 
-import type { CreateItemRequest } from "../types/item";
-import { createItem } from "../api/items";
+import type { CreateItemRequest } from "../../types/item";
+import { createItem } from "../../api/items";
 
 import RemoveIcon from "@mui/icons-material/RemoveCircleOutline";
 import AddIcon from "@mui/icons-material/AddCircleOutline";

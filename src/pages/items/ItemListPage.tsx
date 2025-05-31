@@ -28,12 +28,12 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
-import type { Item } from "../types/item";
-import { fetchItems, deleteItem } from "../api/items";
+import type { Item } from "../../types/item";
+import { fetchItems, deleteItem } from "../../api/items";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDIalog";
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
+import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDIalog";
 
 const ItemListPage: React.FC = () => {
   const theme = useTheme();

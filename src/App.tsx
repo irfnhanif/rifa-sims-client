@@ -1,11 +1,11 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { QueryClient, QueryClientProvider, } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import HomePage from "./pages/Homepage";
-import ItemListPage from "./pages/ItemListPage";
-import AddItemPage from "./pages/AddItemPage";
-import EditItemPage from "./pages/EditItemPage";
+import ItemListPage from "./pages/items/ItemListPage";
+import AddItemPage from "./pages/items/AddItemPage";
+import EditItemPage from "./pages/items/EditItemPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
