@@ -47,8 +47,25 @@ export const fetchItemById = async (id: string): Promise<Item> => {
   return result.data;
 }
 
-export const fetchItemDetailById = async (id: string) => {
-  const response = await apiClient.get(`/items/${id}`);
+export const fetchItemDetailById = async (
+  id: string,
+  fromDate?: string,
+  toDate?: string
+): Promise<ItemDetailResponse> => {
+  const params = new URLSearchParams();
+
+  if (fromDate) {
+    params.append("fromDate", fromDate);
+  }
+
+  if (toDate) {
+    params.append("toDate", toDate);
+  }
+
+  const response = await apiClient.get(
+    `/items/${id}/detail`,
+    params.toString() ? params : undefined
+  );
 
   const result: ApiResponse<ItemDetailResponse> = await response.json();
 
@@ -63,7 +80,7 @@ export const fetchItemDetailById = async (id: string) => {
   return result.data;
 };
 
-export const createItem = async (itemData: CreateItemRequest) => {
+export const createItem = async (itemData: CreateItemRequest): Promise<Item> => {
   const response = await apiClient.post("/items", itemData);
 
   const result: ApiResponse<Item> = await response.json();
@@ -82,7 +99,7 @@ export const createItem = async (itemData: CreateItemRequest) => {
   return result.data;
 };
 
-export const updateItem = async (id: string, data: Partial<Item>) => {
+export const updateItem = async (id: string, data: Partial<Item>): Promise<Item> => {
   const response = await apiClient.put(`/items/${id}`, data)
 
   const result: ApiResponse<Item> = await response.json()

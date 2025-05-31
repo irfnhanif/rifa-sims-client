@@ -520,7 +520,7 @@ const StockListPage: React.FC = () => {
                           <Tooltip title="Detail & Grafik">
                             <IconButton
                               size="small"
-                              onClick={() => handleDetailClick(stock.id)}
+                              onClick={() => handleDetailClick(stock.item.id)}
                               sx={{
                                 padding: "8px",
                                 background: lightButtonBackground,

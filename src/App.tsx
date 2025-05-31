@@ -8,6 +8,7 @@ import AddItemPage from "./pages/items/AddItemPage";
 import EditItemPage from "./pages/items/EditItemPage";
 import StockListPage from "./pages/stocks/StockListPage";
 import EditStockPage from "./pages/stocks/EditStockPage";
+import ItemDetailPage from "./pages/stocks/ItemDetailPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +36,7 @@ function App() {
           <Route path="/stocks">
             <Route index element={<StockListPage />}/>
             <Route path=":id/edit" element={<EditStockPage />} />
+            <Route path=":id/detail" element={<ItemDetailPage />} />
           </Route>
         </Routes>
       </Router>
