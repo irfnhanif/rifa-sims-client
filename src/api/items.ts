@@ -1,5 +1,5 @@
 import type { ApiResponse } from "../types/api";
-import type { CreateItemRequest, Item } from "../types/item";
+import type { CreateItemRequest, Item, ItemDetailResponse } from "../types/item";
 import { apiClient } from "./client";
 
 export const fetchItems = async (
@@ -46,6 +46,22 @@ export const fetchItemById = async (id: string): Promise<Item> => {
 
   return result.data;
 }
+
+export const fetchItemDetailById = async (id: string) => {
+  const response = await apiClient.get(`/items/${id}`);
+
+  const result: ApiResponse<ItemDetailResponse> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  if (!result.data) {
+    throw new Error("No data returned");
+  }
+
+  return result.data;
+};
 
 export const createItem = async (itemData: CreateItemRequest) => {
   const response = await apiClient.post("/items", itemData);
