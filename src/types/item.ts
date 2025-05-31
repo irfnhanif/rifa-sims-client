@@ -9,7 +9,7 @@ export interface Item {
 
 export interface ItemDetailResponse {
   item: Item;
-  stockAuditLog: StockAuditLog[];
+  stockAuditLogs: StockAuditLog[];
 }
 
 export interface CreateItemRequest {
