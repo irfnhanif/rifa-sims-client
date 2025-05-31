@@ -18,3 +18,8 @@ export interface ScanStockChangeRequest {
   changeType: StockChangeType;
   amount: number;
 }
+
+export interface BarcodeScanResponse {
+  id: string;
+  itemName: string;
+}
