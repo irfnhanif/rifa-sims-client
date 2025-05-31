@@ -23,17 +23,16 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
   onClose,
   onConfirm,
   itemName,
-  title = "Konfirmasi Penghapusan", // Default title
+  title = "Konfirmasi Penghapusan Barang",
   contentText,
 }) => {
   const theme = useTheme();
-  const primaryDarkColor = "#2D3648"; // From your Figma
-  const lightButtonBackground = "#EDF0F7"; // From your Figma
+  const primaryDarkColor = "#2D3648";
+  const lightButtonBackground = "#EDF0F7";
 
-  // Construct the confirmation message
   const defaultContentText = itemName
     ? `Apakah Anda yakin ingin menghapus barang "${itemName}"? Tindakan ini tidak dapat diurungkan.`
-    : "Apakah Anda yakin ingin menghapus item ini? Tindakan ini tidak dapat diurungkan.";
+    : "Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat diurungkan.";
 
   const finalContentText = contentText || defaultContentText;
 
@@ -43,26 +42,20 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
       onClose={onClose}
       aria-labelledby="confirm-delete-dialog-title"
       aria-describedby="confirm-delete-dialog-description"
-      PaperProps={{
-        sx: {
-          borderRadius: "8px", // Figma: borderRadius: 8
-          // The outline: '2px #2D3648 solid' with outlineOffset: '-2px' is a bit unconventional for MUI Dialogs.
-          // MUI Dialogs use Paper with elevation. Adding a stark outline might conflict visually.
-          // A border could be an alternative if a strong edge is needed.
-          // For now, relying on standard dialog elevation and custom borderRadius.
-          // If a border is strictly needed: border: `2px solid ${primaryDarkColor}`,
-          padding: theme.spacing(1), // Corresponds to Figma's inner content padding: 32, DialogTitle/Content/Actions handle their own padding. This is an overall padding for the dialog Paper. Figma padding: 32 overall from edge to content.
-          // MUI DialogTitle, DialogContent, DialogActions provide standard padding that usually works well.
-          // Let's adjust DialogContent padding to better match Figma.
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "8px",
+            padding: theme.spacing(1),
+            backgroundColor: "#f8f9fa",
+          },
         },
       }}
     >
       <DialogTitle
         id="confirm-delete-dialog-title"
         sx={{
-          padding: theme.spacing(3, 4, 2, 4), // Approx Figma's padding: 32, gap: 24 (adjusting from default)
-          // Figma gap 10 from headline elements.
-          // Placeholder height: 32. This title itself will have content.
+          padding: theme.spacing(3, 4, 2, 4),
         }}
       >
         <Typography
@@ -72,7 +65,7 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
             fontFamily: "Inter, sans-serif",
             fontWeight: "700",
             color: primaryDarkColor,
-            fontSize: "22px" /* Adjusted for prominence */,
+            fontSize: "22px",
           }}
         >
           {title}
@@ -80,8 +73,7 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
       </DialogTitle>
       <DialogContent
         sx={{
-          padding: theme.spacing(0, 4, 3, 4), // Approx Figma's padding: 32, gap: 24
-          // Figma had gap 8 from content elements.
+          padding: theme.spacing(0, 4, 3, 4),
         }}
       >
         <DialogContentText
@@ -97,15 +89,15 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
       </DialogContent>
       <DialogActions
         sx={{
-          padding: theme.spacing(2, 4, 3, 4), // Approx Figma's padding: 32 for bottom area
-          gap: theme.spacing(2) /* Figma: gap: 16px */,
+          padding: theme.spacing(2, 4, 3, 4),
+          gap: theme.spacing(2),
         }}
       >
         <Button
           onClick={onClose}
           sx={{
-            flexGrow: 1, // If buttons should take available space, though Figma implies fixed padding
-            padding: "12px 20px", // Figma values
+            flexGrow: 1,
+            padding: "12px 20px",
             backgroundColor: lightButtonBackground,
             color: primaryDarkColor,
             fontSize: "16px",
@@ -115,7 +107,7 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
             borderRadius: "6px",
             textTransform: "none",
             "&:hover": {
-              backgroundColor: theme.palette.grey[300], // Slightly darker hover for light button
+              backgroundColor: theme.palette.grey[300],
             },
           }}
         >
@@ -126,7 +118,7 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
           variant="contained"
           sx={{
             flexGrow: 1,
-            padding: "12px 20px", // Figma values
+            padding: "12px 20px",
             backgroundColor: primaryDarkColor,
             color: "white",
             fontSize: "16px",
@@ -136,10 +128,10 @@ export const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
             borderRadius: "6px",
             textTransform: "none",
             "&:hover": {
-              backgroundColor: "#1E2532", // Darker shade of primaryDarkColor
+              backgroundColor: "#1E2532",
             },
           }}
-          autoFocus // Good practice for the affirmative action
+          autoFocus
         >
           Hapus
         </Button>
