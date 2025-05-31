@@ -6,6 +6,7 @@ import HomePage from "./pages/Homepage";
 import ItemListPage from "./pages/items/ItemListPage";
 import AddItemPage from "./pages/items/AddItemPage";
 import EditItemPage from "./pages/items/EditItemPage";
+import StockListPage from "./pages/stocks/StockListPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,11 +25,14 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          <Route path="/" element={<HomePage />}></Route>
+          <Route path="/" element={<HomePage />} />
           <Route path="/items">
             <Route index element={<ItemListPage />} />
             <Route path="add" element={<AddItemPage />} />
             <Route path=":id/edit" element={<EditItemPage />} />
+          </Route>
+          <Route path="/stocks">
+            <Route index element={<StockListPage />}/>
           </Route>
         </Routes>
       </Router>
