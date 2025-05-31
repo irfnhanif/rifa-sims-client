@@ -47,7 +47,7 @@ export const fetchItemStockById = async (id: string): Promise<ItemStock> => {
   return result.data;
 }
 
-export const updateItem = async (id: string, data: Partial<ItemStock>) => {
+export const updateItemStock = async (id: string, data: Partial<ItemStock>) => {
   const response = await apiClient.put(`/item-stocks/${id}`, data)
 
   const result: ApiResponse<ItemStock> = await response.json()
