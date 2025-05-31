@@ -35,7 +35,7 @@ const HomePage: React.FC = () => {
 
   const navigationItems: NavItem[] = [
     { id: "items", label: "Daftar Barang", icon: <ListAltIcon />, path: "/items" },
-    { id: "stocks", label: "Stok Barang", icon: <InventoryIcon />, path: "/item-stocks" },
+    { id: "stocks", label: "Stok Barang", icon: <InventoryIcon />, path: "/stocks" },
     {
       id: "riwayat-perubahan",
       label: "Riwayat Perubahan",
