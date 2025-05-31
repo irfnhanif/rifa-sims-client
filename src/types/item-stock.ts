@@ -1,4 +1,5 @@
 import type { Item } from "./item";
+import type { StockChangeType } from "./stock-change-type";
 
 export interface ItemStock {
   id: string;
@@ -12,16 +13,6 @@ export interface EditStockChangeRequest {
   threshold: number;
   reason: string;
 }
-
-export const StockChangeType = {
-  IN: "IN",
-  OUT: "OUT",
-  MANUAL_EDIT: "MANUAL_EDIT",
-  CREATE: "CREATE",
-  DELETE: "DELETE",
-} as const;
-
-export type StockChangeType = typeof StockChangeType[keyof typeof StockChangeType];
 
 export interface ScanStockChangeRequest {
   changeType: StockChangeType;
