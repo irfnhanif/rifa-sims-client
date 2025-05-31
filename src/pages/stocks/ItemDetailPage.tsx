@@ -17,11 +17,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   LineChart,
-  lineElementClasses,
-  markElementClasses,
-} from "@mui/x-charts/LineChart";
-import { ChartsGrid } from "@mui/x-charts/ChartsGrid";
-import { ChartsTooltip } from "@mui/x-charts/ChartsTooltip";
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -29,9 +32,9 @@ import type { ItemDetailResponse } from "../../types/item";
 import { fetchItemDetailById } from "../../api/items";
 
 interface StockDataPoint {
-  [key: string]: Date | number;
-  x: Date;
+  date: string;
   stock: number;
+  originalTimestamp: Date;
 }
 
 const ItemDetailPage: React.FC = () => {
@@ -105,12 +108,22 @@ const ItemDetailPage: React.FC = () => {
       return [];
     }
     return itemDetailResponse.stockAuditLogs
-      .map((log) => ({
-        x: new Date(log.timestamp),
-        stock: log.newStock,
-      }))
-      .sort((a, b) => a.x.getTime() - b.x.getTime());
-  }, [itemDetailResponse?.stockAuditLogs]);
+      .map((log) => {
+        const timestamp = new Date(log.timestamp);
+        return {
+          date: timestamp.toLocaleDateString("id-ID", {
+            month: "short",
+            day: "numeric",
+            hour: selectedTimeFrame === "today" ? "numeric" : undefined,
+          }),
+          stock: log.newStock,
+          originalTimestamp: timestamp,
+        };
+      })
+      .sort(
+        (a, b) => a.originalTimestamp.getTime() - b.originalTimestamp.getTime()
+      );
+  }, [itemDetailResponse?.stockAuditLogs, selectedTimeFrame]);
 
   const handleTimeFrameChange = (event: SelectChangeEvent<string>) => {
     setSelectedTimeFrame(event.target.value as string);
@@ -123,7 +136,7 @@ const ItemDetailPage: React.FC = () => {
   const sectionLabelStyle = {
     color: primaryDarkColor,
     fontSize: "14px",
-    fontFamily: "Inter, sans-serif",
+    fontFamily: "Roboto, sans-serif",
     fontWeight: "600",
     lineHeight: "16px",
     mb: 1,
@@ -152,8 +165,8 @@ const ItemDetailPage: React.FC = () => {
         <Header title="Error" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
           <Alert severity="error">
-            Error loading item details:{" "}
-            {fetchItemError.message || "Unknown error"}
+            Gagal memuat detail barang:{" "}
+            {fetchItemError.message || "Kesalahan tidak diketahui"}
           </Alert>
         </Container>
         <Footer />
@@ -166,9 +179,9 @@ const ItemDetailPage: React.FC = () => {
       <Box
         sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
       >
-        <Header title="Not Found" onBackClick={handleBackClick} />
+        <Header title="Tidak Ditemukan" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
-          <Alert severity="warning">Item details not found.</Alert>
+          <Alert severity="warning">Detail barang tidak ditemukan.</Alert>
         </Container>
         <Footer />
       </Box>
@@ -188,7 +201,7 @@ const ItemDetailPage: React.FC = () => {
       }}
     >
       <Header
-        title="Item Details"
+        title="Detail Barang"
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -201,11 +214,11 @@ const ItemDetailPage: React.FC = () => {
       >
         <Box
           sx={{
-            px: { xs: 2, sm: 3, md: "36px" },
-            py: { xs: 2, sm: 3, md: "24px" },
+            px: { xs: 1, sm: 2, md: 3 },
+            py: { xs: 1, sm: 2, md: 3 },
             display: "flex",
             flexDirection: "column",
-            gap: "24px",
+            gap: 2,
           }}
         >
           <Typography
@@ -213,21 +226,21 @@ const ItemDetailPage: React.FC = () => {
             component="h1"
             sx={{
               color: "black",
-              fontSize: "24px",
-              fontFamily: "Inter, sans-serif",
+              fontSize: { xs: "20px", sm: "24px" },
+              fontFamily: "Roboto, sans-serif",
               fontWeight: "700",
-              lineHeight: "33.60px",
+              lineHeight: 1.4,
             }}
           >
             {item.name}
           </Typography>
 
           <Paper elevation={2} sx={{ p: 2.5, borderRadius: "8px" }}>
-            <Typography sx={sectionLabelStyle}>Description</Typography>
+            <Typography sx={sectionLabelStyle}>Deskripsi</Typography>
             <Typography
               variant="body1"
               sx={{
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "Roboto, sans-serif",
                 whiteSpace: "pre-line",
                 color: theme.palette.text.secondary,
                 lineHeight: 1.65,
@@ -242,7 +255,7 @@ const ItemDetailPage: React.FC = () => {
             <Typography
               variant="body1"
               sx={{
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "Roboto, sans-serif",
                 color: theme.palette.text.primary,
                 wordBreak: "break-all",
               }}
@@ -251,125 +264,166 @@ const ItemDetailPage: React.FC = () => {
             </Typography>
           </Paper>
 
-          <Paper elevation={2} sx={{ p: 2.5, borderRadius: "8px" }}>
+          <Paper
+            elevation={2}
+            sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: "8px" }}
+          >
             <Box
               sx={{
                 display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
                 justifyContent: "space-between",
-                alignItems: "center",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: { xs: 2, sm: 0 },
                 mb: 2,
               }}
             >
-              <Typography sx={sectionLabelStyle}>Stock Trend</Typography>
-              <FormControl size="small" sx={{ minWidth: 150 }}>
+              <Typography sx={sectionLabelStyle}>Grafik Stok</Typography>
+              <FormControl
+                size="small"
+                sx={{ minWidth: { xs: "100%", sm: 150 } }}
+              >
                 <InputLabel
                   id="time-frame-select-label"
-                  sx={{ fontFamily: "Inter, sans-serif" }}
+                  sx={{ fontFamily: "Roboto, sans-serif" }}
                 >
-                  Period
+                  Periode
                 </InputLabel>
                 <Select
                   labelId="time-frame-select-label"
                   id="time-frame-select"
                   value={selectedTimeFrame}
-                  label="Period"
+                  label="Periode"
                   onChange={handleTimeFrameChange}
                   sx={{
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "Roboto, sans-serif",
                     borderRadius: "6px",
                     fontSize: "14px",
                   }}
                 >
                   <MenuItem
                     value="today"
-                    sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
+                    sx={{ fontFamily: "Roboto, sans-serif", fontSize: "14px" }}
                   >
-                    Today
+                    Hari Ini
                   </MenuItem>
                   <MenuItem
                     value="7days"
-                    sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
+                    sx={{ fontFamily: "Roboto, sans-serif", fontSize: "14px" }}
                   >
-                    Last 7 Days
+                    7 Hari Terakhir
                   </MenuItem>
                   <MenuItem
                     value="30days"
-                    sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
+                    sx={{ fontFamily: "Roboto, sans-serif", fontSize: "14px" }}
                   >
-                    Last 30 Days
+                    30 Hari Terakhir
                   </MenuItem>
                   <MenuItem
                     value="90days"
-                    sx={{ fontFamily: "Inter, sans-serif", fontSize: "14px" }}
+                    sx={{ fontFamily: "Roboto, sans-serif", fontSize: "14px" }}
                   >
-                    Last 90 Days
+                    90 Hari Terakhir
                   </MenuItem>
                 </Select>
               </FormControl>
             </Box>
-            <Box sx={{ height: 300, width: "100%" }}>
+            <Box
+              sx={{
+                height: { xs: 250, sm: 300 },
+                width: "100%",
+              }}
+            >
               {chartData.length > 0 ? (
-                <LineChart
-                  dataset={chartData}
-                  series={[
-                    {
-                      dataKey: "stock",
-                      label: "Stock",
-                      color: primaryDarkColor,
-                      showMark: true,
-                    },
-                  ]}
-                  xAxis={[
-                    {
-                      dataKey: "x",
-                      scaleType: "time",
-                      valueFormatter: (date: Date) =>
-                        date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        }),
-                    },
-                  ]}
-                  yAxis={[
-                    {
-                      scaleType: "linear",
-                    },
-                  ]}
-                  width={undefined}
-                  height={300}
-                  margin={{ top: 25, right: 20, left: 40, bottom: 40 }}
-                  sx={{
-                    [`.${lineElementClasses.root}`]: {
-                      strokeWidth: 2.5,
-                    },
-                    [`.${markElementClasses.root}`]: {
-                      stroke: primaryDarkColor,
-                      fill: primaryDarkColor,
-                      strokeWidth: 2,
-                      r: 4,
-                      "&:hover": {
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart
+                    data={chartData}
+                    margin={{
+                      top: 25,
+                      right: 15,
+                      left: 5,
+                      bottom: 35,
+                    }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={theme.palette.divider}
+                      horizontal={true}
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{
+                        fontFamily: "Roboto, sans-serif",
+                        fontSize: 12,
+                        fill: theme.palette.text.secondary,
+                      }}
+                      axisLine={{ stroke: theme.palette.divider }}
+                      tickLine={{ stroke: theme.palette.divider }}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{
+                        fontFamily: "Roboto, sans-serif",
+                        fontSize: 12,
+                        fill: theme.palette.text.secondary,
+                      }}
+                      axisLine={{ stroke: theme.palette.divider }}
+                      tickLine={{ stroke: theme.palette.divider }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        fontFamily: "Roboto, sans-serif",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        backgroundColor: theme.palette.background.paper,
+                        border: `1px solid ${theme.palette.divider}`,
+                        boxShadow: theme.shadows[3],
+                      }}
+                      formatter={(value: number) => [value, "Stok"]}
+                      labelStyle={{
+                        color: theme.palette.text.primary,
+                        fontWeight: 600,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="stock"
+                      stroke={primaryDarkColor}
+                      strokeWidth={2.5}
+                      activeDot={{
                         r: 6,
-                      },
-                    },
-                    ".MuiChartsAxis-tickContainer .MuiChartsAxis-tickLabel": {
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "12px",
-                    },
-                    ".MuiChartsTooltip-root": {
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "14px",
-                    },
-                  }}
-                >
-                  <ChartsGrid horizontal />
-                  <ChartsTooltip trigger="item" />
-                </LineChart>
+                        fill: primaryDarkColor,
+                        stroke: theme.palette.background.paper,
+                        strokeWidth: 2,
+                      }}
+                      dot={{
+                        r: 4,
+                        fill: primaryDarkColor,
+                        stroke: primaryDarkColor,
+                        strokeWidth: 1,
+                      }}
+                    >
+                      <LabelList
+                        dataKey="stock"
+                        position="top"
+                        offset={8}
+                        style={{
+                          fill: primaryDarkColor,
+                          fontSize: 12,
+                          fontFamily: "Roboto, sans-serif",
+                          fontWeight: "600",
+                        }}
+                      />
+                    </Line>
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
                 <Typography
                   sx={{
                     textAlign: "center",
                     color: theme.palette.text.secondary,
-                    fontFamily: "Inter, sans-serif",
+                    fontFamily: "Roboto, sans-serif",
                     mt: 4,
                     height: "100%",
                     display: "flex",
@@ -380,7 +434,7 @@ const ItemDetailPage: React.FC = () => {
                   {isLoadingItem ? (
                     <CircularProgress size={30} />
                   ) : (
-                    "Stock trend data not available for this period."
+                    "Data grafik stok tidak tersedia untuk periode ini."
                   )}
                 </Typography>
               )}
