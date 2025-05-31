@@ -20,7 +20,6 @@ import {
   Menu,
   MenuItem,
   Checkbox,
-  FormControlLabel,
   Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
@@ -333,12 +332,14 @@ const StockListPage: React.FC = () => {
                 anchorEl={filterMenuAnchor}
                 open={Boolean(filterMenuAnchor)}
                 onClose={handleFilterMenuClose}
-                PaperProps={{
-                  sx: {
-                    borderRadius: "8px",
-                    mt: 1,
-                    minWidth: 200,
-                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                slotProps={{
+                  paper: {
+                    sx: {
+                      borderRadius: "8px",
+                      mt: 1,
+                      minWidth: 200,
+                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    },
                   },
                 }}
                 transformOrigin={{ horizontal: "right", vertical: "top" }}
@@ -362,37 +363,35 @@ const StockListPage: React.FC = () => {
                     key={option.value}
                     onClick={() => handleFilterToggle(option.value)}
                     sx={{
-                      px: 1,
-                      py: 0.5,
+                      px: 2,
+                      py: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
                       "&:hover": {
                         backgroundColor: theme.palette.action.hover,
                       },
                     }}
                   >
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={stockFilters.includes(option.value)}
-                          sx={{
-                            color: primaryColor,
-                            "&.Mui-checked": {
-                              color: primaryColor,
-                            },
-                          }}
-                        />
-                      }
-                      label={
-                        <Typography
-                          sx={{
-                            fontFamily: "Roboto, sans-serif",
-                            fontSize: "14px",
-                          }}
-                        >
-                          {option.label}
-                        </Typography>
-                      }
-                      sx={{ margin: 0, width: "100%" }}
+                    <Checkbox
+                      checked={stockFilters.includes(option.value)}
+                      sx={{
+                        color: primaryColor,
+                        "&.Mui-checked": {
+                          color: primaryColor,
+                        },
+                        padding: 0,
+                      }}
                     />
+                    <Typography
+                      sx={{
+                        fontFamily: "Roboto, sans-serif",
+                        fontSize: "14px",
+                        flexGrow: 1,
+                      }}
+                    >
+                      {option.label}
+                    </Typography>
                   </MenuItem>
                 ))}
               </Menu>
