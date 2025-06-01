@@ -18,6 +18,7 @@ import {
   Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
 import {
   BrowserMultiFormatReader,
   DecodeHintType,
@@ -80,6 +81,35 @@ const ScanBarcodePage: React.FC = () => {
     hintMap.set(DecodeHintType.POSSIBLE_FORMATS, oneDFormats);
     return hintMap;
   }, []);
+
+  const barcodeMutation = useMutation({
+    mutationFn: fetchItemStockByBarcode,
+    onSuccess: (response: BarcodeScanResponse[], barcode: string) => {
+      if (isUnmountedRef.current) return;
+
+      if (response.length === 0) {
+        setScanError("Barcode tidak ditemukan dalam sistem");
+        setIsProcessingBarcode(false);
+        return;
+      }
+
+      if (response.length === 1) {
+        navigate(`/scan/${response[0].itemStockId}/input`, {
+          state: { itemName: response[0].itemName, barcode: barcode },
+        });
+      } else {
+        navigate("/scan/choose-item", {
+          state: { items: response, barcode: barcode },
+        });
+      }
+    },
+    onError: () => {
+      if (!isUnmountedRef.current) {
+        setScanError("Gagal memproses barcode. Silakan coba lagi.");
+        setIsProcessingBarcode(false);
+      }
+    },
+  });
 
   const stopScan = useCallback(() => {
     scanningRef.current = false;
@@ -162,7 +192,7 @@ const ScanBarcodePage: React.FC = () => {
   }, []);
 
   const handleBarcodeDetected = useCallback(
-    async (barcode: string) => {
+    (barcode: string) => {
       if (isProcessingBarcode || !scanningRef.current || isUnmountedRef.current)
         return;
 
@@ -170,38 +200,9 @@ const ScanBarcodePage: React.FC = () => {
       setIsProcessingBarcode(true);
 
       stopScan();
-
-      try {
-        const response: BarcodeScanResponse[] = await fetchItemStockByBarcode(
-          barcode
-        );
-
-        if (isUnmountedRef.current) return;
-
-        if (response.length === 0) {
-          setScanError("Barcode tidak ditemukan dalam sistem");
-          setIsProcessingBarcode(false);
-          return;
-        }
-
-        if (response.length === 1) {
-          navigate(`/input-scan/${response[0].id}`, {
-            state: { itemName: response[0].itemName, barcode },
-          });
-        } else {
-          navigate("/choose-item", {
-            state: { items: response, barcode },
-          });
-        }
-      } catch (error) {
-        console.error("Error processing barcode:", error);
-        if (!isUnmountedRef.current) {
-          setScanError("Gagal memproses barcode. Silakan coba lagi.");
-          setIsProcessingBarcode(false);
-        }
-      }
+      barcodeMutation.mutate(barcode);
     },
-    [navigate, isProcessingBarcode, stopScan]
+    [isProcessingBarcode, stopScan, barcodeMutation]
   );
 
   const startBarcodeScanning = useCallback(async () => {
@@ -220,7 +221,7 @@ const ScanBarcodePage: React.FC = () => {
 
       if (result && scanningRef.current && !isUnmountedRef.current) {
         const barcode = result.getText();
-        await handleBarcodeDetected(barcode);
+        handleBarcodeDetected(barcode);
       }
     } catch (error) {
       if (isUnmountedRef.current) return;
@@ -440,7 +441,7 @@ const ScanBarcodePage: React.FC = () => {
   };
 
   const handleScanHistory = () => {
-    navigate("/scan-history");
+    navigate("/scan/history");
   };
 
   const handleRetry = () => {
@@ -450,7 +451,7 @@ const ScanBarcodePage: React.FC = () => {
   };
 
   const getCameraIcon = () => {
-    if (isProcessingBarcode) {
+    if (isProcessingBarcode || barcodeMutation.isPending) {
       return (
         <FiberManualRecordIcon sx={{ fontSize: "28px", color: "#ff1744" }} />
       );
@@ -462,7 +463,7 @@ const ScanBarcodePage: React.FC = () => {
   };
 
   const getCameraTooltip = () => {
-    if (isProcessingBarcode) {
+    if (isProcessingBarcode || barcodeMutation.isPending) {
       return "Memproses Barcode";
     }
     if (isScanning) {
@@ -554,10 +555,12 @@ const ScanBarcodePage: React.FC = () => {
               }}
             />
 
-            {(isLoadingCameras || isProcessingBarcode) && (
+            {(isLoadingCameras ||
+              isProcessingBarcode ||
+              barcodeMutation.isPending) && (
               <Box sx={{ position: "absolute", textAlign: "center" }}>
                 <CircularProgress />
-                {isProcessingBarcode && (
+                {(isProcessingBarcode || barcodeMutation.isPending) && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
                     Memproses barcode...
                   </Typography>
@@ -644,7 +647,8 @@ const ScanBarcodePage: React.FC = () => {
               !isScanning &&
               !needsPermission &&
               !permissionDenied &&
-              !isProcessingBarcode && (
+              !isProcessingBarcode &&
+              !barcodeMutation.isPending && (
                 <Box sx={{ position: "absolute", textAlign: "center" }}>
                   <CameraAltIcon
                     sx={{ fontSize: 64, color: theme.palette.grey[400] }}
@@ -729,18 +733,25 @@ const ScanBarcodePage: React.FC = () => {
               <IconButton
                 onClick={isScanning ? stopScan : startScan}
                 disabled={
-                  isLoadingCameras || needsPermission || permissionDenied
+                  isLoadingCameras ||
+                  needsPermission ||
+                  permissionDenied ||
+                  barcodeMutation.isPending
                 }
                 sx={{
                   padding: "20px",
-                  background: isProcessingBarcode
-                    ? "#ff1744"
-                    : primaryDarkColor,
+                  background:
+                    isProcessingBarcode || barcodeMutation.isPending
+                      ? "#ff1744"
+                      : primaryDarkColor,
                   borderRadius: "50%",
                   color: "white",
                   transform: "scale(1.2)",
                   "&:hover": {
-                    background: isProcessingBarcode ? "#d50000" : "#1E2532",
+                    background:
+                      isProcessingBarcode || barcodeMutation.isPending
+                        ? "#d50000"
+                        : "#1E2532",
                     transform: "scale(1.25)",
                   },
                   "&:disabled": {
