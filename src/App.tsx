@@ -9,6 +9,7 @@ import EditItemPage from "./pages/items/EditItemPage";
 import StockListPage from "./pages/stocks/StockListPage";
 import EditStockPage from "./pages/stocks/EditStockPage";
 import ItemDetailPage from "./pages/stocks/ItemDetailPage";
+import ScanBarcodePage from "./pages/barcode/ScanBarcodePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,9 @@ function App() {
             <Route index element={<StockListPage />}/>
             <Route path=":id/edit" element={<EditStockPage />} />
             <Route path=":id/detail" element={<ItemDetailPage />} />
+          </Route>
+          <Route path="/scan">
+            <Route index element={<ScanBarcodePage />} />
           </Route>
         </Routes>
       </Router>

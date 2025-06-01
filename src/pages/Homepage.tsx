@@ -42,7 +42,7 @@ const HomePage: React.FC = () => {
       icon: <HistoryIcon />,
       path: "/stock-change-history"
     },
-    { id: "scan-barcode", label: "Scan Barcode", icon: <QrCodeScannerIcon />, path: "scan" },
+    { id: "scan-barcode", label: "Scan Barcode", icon: <QrCodeScannerIcon />, path: "/scan" },
   ];
 
   const primaryColor = "#2D3648";
