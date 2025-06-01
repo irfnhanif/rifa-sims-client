@@ -33,8 +33,10 @@ import type { BarcodeScanResponse } from "../../types/item-stock";
 // Icons
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import FlashOffIcon from "@mui/icons-material/FlashOff";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
-import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import CameraAltIcon from "@mui/icons-material/CameraAlt"
+import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import HistoryIcon from "@mui/icons-material/History";
 
 // Extend MediaTrackCapabilities to include torch
@@ -53,6 +55,7 @@ const ScanBarcodePage: React.FC = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const scanningRef = useRef<boolean>(false);
+  const isUnmountedRef = useRef<boolean>(false);
 
   const [scanError, setScanError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
@@ -62,11 +65,7 @@ const ScanBarcodePage: React.FC = () => {
     useState<boolean>(false);
   const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
   const [needsPermission, setNeedsPermission] = useState<boolean>(false);
-  const [currentCamera, setCurrentCamera] = useState<"environment" | "user">(
-    "environment"
-  );
   const [hasFlash, setHasFlash] = useState<boolean>(false);
-  const [hasMultipleCameras, setHasMultipleCameras] = useState<boolean>(false);
 
   const hints = useMemo(() => {
     const hintMap = new Map();
@@ -83,235 +82,6 @@ const ScanBarcodePage: React.FC = () => {
     hintMap.set(DecodeHintType.POSSIBLE_FORMATS, oneDFormats);
     return hintMap;
   }, []);
-
-  const checkDeviceCapabilities = useCallback(async () => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputDevices = devices.filter(
-        (device) => device.kind === "videoinput"
-      );
-      setHasMultipleCameras(videoInputDevices.length > 1);
-
-      // Check for flash support
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-
-      const track = stream.getVideoTracks()[0];
-      const capabilities =
-        track.getCapabilities() as ExtendedMediaTrackCapabilities;
-      setHasFlash(!!capabilities.torch);
-
-      // Stop the test stream
-      stream.getTracks().forEach((track) => track.stop());
-    } catch (err) {
-      console.error("Error checking device capabilities:", err);
-      setHasMultipleCameras(false);
-      setHasFlash(false);
-    }
-  }, []);
-
-  const requestCameraPermission = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: currentCamera },
-      });
-      stream.getTracks().forEach((track) => track.stop());
-      setPermissionDenied(false);
-      setNeedsPermission(false);
-      return true;
-    } catch (error) {
-      console.error("Camera permission denied:", error);
-      setPermissionDenied(true);
-      setNeedsPermission(false);
-      setScanError(
-        "Camera permission is required to scan bar codes. Please enable camera access in your browser settings."
-      ); // cSpell:ignore barcodes
-      return false;
-    }
-  }, [currentCamera]);
-
-  const handleBarcodeDetected = useCallback(
-    async (barcode: string) => {
-      if (isProcessingBarcode || !scanningRef.current) return;
-
-      // Stop scanning immediately when barcode is found
-      scanningRef.current = false;
-      setIsProcessingBarcode(true);
-
-      // Stop the camera stream directly here
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => {
-          track.stop();
-        });
-        streamRef.current = null;
-      }
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-        videoRef.current.pause();
-      }
-
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset();
-        codeReaderRef.current = null;
-      }
-
-      setIsScanning(false);
-      setIsFlashOn(false);
-
-      try {
-        console.log("Processing barcode:", barcode);
-        const response: BarcodeScanResponse[] = await fetchItemStockByBarcode(
-          barcode
-        );
-
-        if (response.length === 0) {
-          setScanError("Barcode not found in system");
-          setIsProcessingBarcode(false);
-          return;
-        }
-
-        if (response.length === 1) {
-          navigate(`/input-scan/${response[0].id}`, {
-            state: { itemName: response[0].itemName, barcode },
-          });
-        } else {
-          navigate("/choose-item", {
-            state: { items: response, barcode },
-          });
-        }
-      } catch (error) {
-        console.error("Error processing barcode:", error);
-        setScanError("Failed to process barcode. Please try again.");
-        setIsProcessingBarcode(false);
-      }
-    },
-    [navigate, isProcessingBarcode]
-  );
-
-  const startBarcodeScanning = useCallback(async () => {
-    if (!codeReaderRef.current || !videoRef.current) {
-      console.error("Barcode reader or video not initialized");
-      return;
-    }
-
-    console.log("Starting barcode scanning");
-    scanningRef.current = true;
-
-    try {
-      // Use decodeOnceFromVideoDevice for single scan
-      const result = await codeReaderRef.current.decodeOnceFromVideoDevice(
-        undefined, // Use default video device
-        videoRef.current
-      );
-
-      if (result && scanningRef.current) {
-        const barcode = result.getText();
-        console.log("Barcode detected:", barcode);
-        await handleBarcodeDetected(barcode);
-      }
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        // No barcode found, continue scanning
-        if (scanningRef.current) {
-          // Retry after a short delay
-          setTimeout(() => {
-            if (scanningRef.current) {
-              startBarcodeScanning();
-            }
-          }, 500);
-        }
-      } else {
-        console.error("Unexpected error during barcode scanning:", error);
-        if (scanningRef.current) {
-          // Retry on unexpected errors
-          setTimeout(() => {
-            if (scanningRef.current) {
-              startBarcodeScanning();
-            }
-          }, 500);
-        }
-      }
-    }
-  }, [handleBarcodeDetected]);
-
-  const startScan = useCallback(async () => {
-    if (!videoRef.current) return;
-
-    setIsScanning(true);
-    setScanError(null);
-    setIsFlashOn(false);
-    setIsProcessingBarcode(false);
-
-    try {
-      console.log("Requesting camera access...");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: currentCamera,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
-      console.log("Camera access granted");
-
-      videoRef.current.srcObject = stream;
-      streamRef.current = stream;
-
-      await new Promise<void>((resolve, reject) => {
-        if (videoRef.current) {
-          videoRef.current.onloadedmetadata = () => {
-            console.log("Video metadata loaded");
-            resolve();
-          };
-          videoRef.current.onerror = reject;
-        }
-      });
-
-      if (videoRef.current) {
-        try {
-          // Check if video is already playing before calling play()
-          if (videoRef.current.paused || videoRef.current.readyState < 2) {
-            await videoRef.current.play();
-            console.log("Video playback started");
-          } else {
-            console.log("Video already playing");
-          }
-        } catch (playError) {
-          console.error("Error starting video playback:", playError);
-          throw new Error("Failed to start video playback");
-        }
-      }
-
-      // Initialize barcode reader
-      codeReaderRef.current = new BrowserMultiFormatReader(hints);
-
-      // Start scanning after a short delay to ensure video is ready
-      setTimeout(() => {
-        startBarcodeScanning();
-      }, 500);
-
-      // Check flash capability
-      const track = stream.getVideoTracks()[0];
-      const capabilities =
-        track.getCapabilities() as ExtendedMediaTrackCapabilities;
-      setHasFlash(!!capabilities.torch);
-    } catch (err: unknown) {
-      console.error("Failed to start scanner:", err);
-      let message = `Failed to start camera: ${
-        err instanceof Error ? err.message : "Unknown error"
-      }.`;
-      if (err instanceof Error && err.name === "NotAllowedError") {
-        message =
-          "Camera permission denied. Please enable camera access in your browser settings.";
-        setPermissionDenied(true);
-      } else if (err instanceof Error && err.name === "NotReadableError") {
-        message = "Camera is busy or not available. Please try again.";
-      }
-      setScanError(message);
-      setIsScanning(false);
-    }
-  }, [currentCamera, hints, startBarcodeScanning]);
 
   const stopScan = useCallback(() => {
     console.log("Stopping scan...");
@@ -337,30 +107,305 @@ const ScanBarcodePage: React.FC = () => {
 
     // Reset reader
     if (codeReaderRef.current) {
-      codeReaderRef.current.reset();
+      try {
+        codeReaderRef.current.reset();
+      } catch (error) {
+        console.warn("Error resetting code reader:", error);
+      }
       codeReaderRef.current = null;
     }
 
-    setIsScanning(false);
-    setIsFlashOn(false);
+    if (!isUnmountedRef.current) {
+      setIsScanning(false);
+      setIsFlashOn(false);
+    }
   }, []);
 
+  const checkDeviceCapabilities = useCallback(async () => {
+    try {
+      // Check for flash support
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+
+      const track = stream.getVideoTracks()[0];
+      const capabilities =
+        track.getCapabilities() as ExtendedMediaTrackCapabilities;
+
+      if (!isUnmountedRef.current) {
+        setHasFlash(!!capabilities.torch);
+      }
+
+      // Stop the test stream
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (err) {
+      console.error("Error checking device capabilities:", err);
+      if (!isUnmountedRef.current) {
+        setHasFlash(false);
+      }
+    }
+  }, []);
+
+  const requestCameraPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      stream.getTracks().forEach((track) => track.stop());
+
+      if (!isUnmountedRef.current) {
+        setPermissionDenied(false);
+        setNeedsPermission(false);
+      }
+      return true;
+    } catch (error) {
+      console.error("Camera permission denied:", error);
+
+      if (!isUnmountedRef.current) {
+        setPermissionDenied(true);
+        setNeedsPermission(false);
+        setScanError(
+          "Izin kamera diperlukan untuk memindai barcode. Harap aktifkan akses kamera di pengaturan browser Anda." // cSpell:ignore Izin kamera diperlukan untuk memindai Harap aktifkan akses pengaturan browser Anda
+        );
+      }
+      return false;
+    }
+  }, []);
+
+  const handleBarcodeDetected = useCallback(
+    async (barcode: string) => {
+      if (isProcessingBarcode || !scanningRef.current || isUnmountedRef.current)
+        return;
+
+      // Stop scanning immediately when barcode is found
+      scanningRef.current = false;
+      setIsProcessingBarcode(true);
+
+      // Stop the camera stream directly here
+      stopScan();
+
+      try {
+        console.log("Processing barcode:", barcode);
+        const response: BarcodeScanResponse[] = await fetchItemStockByBarcode(
+          barcode
+        );
+
+        if (isUnmountedRef.current) return;
+
+        if (response.length === 0) {
+          setScanError("Barcode tidak ditemukan dalam sistem"); // cSpell:ignore tidak ditemukan dalam sistem
+          setIsProcessingBarcode(false);
+          return;
+        }
+
+        if (response.length === 1) {
+          navigate(`/input-scan/${response[0].id}`, {
+            state: { itemName: response[0].itemName, barcode },
+          });
+        } else {
+          navigate("/choose-item", {
+            state: { items: response, barcode },
+          });
+        }
+      } catch (error) {
+        console.error("Error processing barcode:", error);
+        if (!isUnmountedRef.current) {
+          setScanError("Gagal memproses barcode. Silakan coba lagi."); // cSpell:ignore Gagal memproses Silakan coba lagi
+          setIsProcessingBarcode(false);
+        }
+      }
+    },
+    [navigate, isProcessingBarcode, stopScan]
+  );
+
+  const startBarcodeScanning = useCallback(async () => {
+    if (!codeReaderRef.current || !videoRef.current || isUnmountedRef.current) {
+      console.error("Barcode reader or video not initialized");
+      return;
+    }
+
+    console.log("Starting barcode scanning");
+    scanningRef.current = true;
+
+    try {
+      // Use decodeOnceFromVideoDevice for single scan
+      const result = await codeReaderRef.current.decodeOnceFromVideoDevice(
+        undefined, // Use default video device
+        videoRef.current
+      );
+
+      if (result && scanningRef.current && !isUnmountedRef.current) {
+        const barcode = result.getText();
+        console.log("Barcode detected:", barcode);
+        await handleBarcodeDetected(barcode);
+      }
+    } catch (error) {
+      if (isUnmountedRef.current) return;
+
+      if (error instanceof NotFoundException) {
+        // No barcode found, continue scanning
+        if (scanningRef.current) {
+          // Retry after a short delay
+          setTimeout(() => {
+            if (scanningRef.current && !isUnmountedRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      } else {
+        console.error("Unexpected error during barcode scanning:", error);
+        if (scanningRef.current) {
+          // Retry on unexpected errors
+          setTimeout(() => {
+            if (scanningRef.current && !isUnmountedRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [handleBarcodeDetected]);
+
+  const startScan = useCallback(async () => {
+    if (!videoRef.current || isUnmountedRef.current) return;
+
+    setIsScanning(true);
+    setScanError(null);
+    setIsFlashOn(false);
+    setIsProcessingBarcode(false);
+
+    try {
+      console.log("Requesting camera access...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+
+      if (isUnmountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      console.log("Camera access granted");
+
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+
+      await new Promise<void>((resolve, reject) => {
+        if (!videoRef.current) {
+          reject(new Error("Video element not available"));
+          return;
+        }
+
+        const handleLoadedMetadata = () => {
+          console.log("Video metadata loaded");
+          if (videoRef.current) {
+            videoRef.current.removeEventListener(
+              "loadedmetadata",
+              handleLoadedMetadata
+            );
+          }
+          resolve();
+        };
+
+        const handleError = (error: Event) => {
+          if (videoRef.current) {
+            videoRef.current.removeEventListener("error", handleError);
+          }
+          reject(error);
+        };
+
+        videoRef.current.addEventListener(
+          "loadedmetadata",
+          handleLoadedMetadata
+        );
+        videoRef.current.addEventListener("error", handleError);
+      });
+
+      if (isUnmountedRef.current) return;
+
+      if (videoRef.current) {
+        try {
+          // Check if video is already playing before calling play()
+          if (videoRef.current.paused || videoRef.current.readyState < 3) {
+            await videoRef.current.play();
+            console.log("Video playback started");
+          } else {
+            console.log("Video already playing");
+          }
+        } catch (playError) {
+          console.error("Error starting video playbook:", playError);
+          throw new Error("Failed to start video playback");
+        }
+      }
+
+      if (isUnmountedRef.current) return;
+
+      // Initialize barcode reader
+      codeReaderRef.current = new BrowserMultiFormatReader(hints);
+
+      // Start scanning after a short delay to ensure video is ready
+      setTimeout(() => {
+        if (!isUnmountedRef.current) {
+          startBarcodeScanning();
+        }
+      }, 500);
+
+      // Check flash capability
+      const track = stream.getVideoTracks()[0];
+      const capabilities =
+        track.getCapabilities() as ExtendedMediaTrackCapabilities;
+      if (!isUnmountedRef.current) {
+        setHasFlash(!!capabilities.torch);
+      }
+    } catch (err: unknown) {
+      if (isUnmountedRef.current) return;
+
+      console.error("Failed to start scanner:", err);
+      let message = `Gagal memulai kamera: ${
+        // cSpell:ignore Gagal memulai kamera
+        err instanceof Error ? err.message : "Kesalahan tidak diketahui" // cSpell:ignore Kesalahan tidak diketahui
+      }.`;
+
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        message =
+          "Izin kamera ditolak. Harap aktifkan akses kamera di pengaturan browser Anda."; // cSpell:ignore Izin kamera ditolak Harap aktifkan akses pengaturan browser Anda
+        setPermissionDenied(true);
+      } else if (err instanceof Error && err.name === "NotReadableError") {
+        message =
+          "Kamera sedang digunakan atau tidak tersedia. Silakan coba lagi."; // cSpell:ignore Kamera sedang digunakan atau tidak tersedia Silakan coba lagi
+      }
+      setScanError(message);
+      setIsScanning(false);
+    }
+  }, [hints, startBarcodeScanning]);
+
   const initializeCamera = useCallback(async () => {
+    if (isUnmountedRef.current) return;
+
     setIsLoadingCameras(true);
 
     const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
+    if (!hasPermission || isUnmountedRef.current) {
       setIsLoadingCameras(false);
       return;
     }
 
     await checkDeviceCapabilities();
-    setIsLoadingCameras(false);
+
+    if (!isUnmountedRef.current) {
+      setIsLoadingCameras(false);
+    }
   }, [requestCameraPermission, checkDeviceCapabilities]);
 
   useEffect(() => {
+    isUnmountedRef.current = false;
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setScanError("Your browser does not support camera access");
+      setScanError("Browser Anda tidak mendukung akses kamera"); // cSpell:ignore Browser Anda tidak mendukung akses kamera
       setIsLoadingCameras(false);
       return;
     }
@@ -369,6 +414,8 @@ const ScanBarcodePage: React.FC = () => {
     navigator.permissions
       ?.query({ name: "camera" as PermissionName })
       .then((result) => {
+        if (isUnmountedRef.current) return;
+
         if (result.state === "granted") {
           setNeedsPermission(false);
           initializeCamera();
@@ -378,6 +425,8 @@ const ScanBarcodePage: React.FC = () => {
         }
       })
       .catch(() => {
+        if (isUnmountedRef.current) return;
+
         // Fallback for browsers that don't support permissions API
         setNeedsPermission(true);
         setIsLoadingCameras(false);
@@ -385,6 +434,7 @@ const ScanBarcodePage: React.FC = () => {
 
     return () => {
       console.log("Component unmounting, cleaning up...");
+      isUnmountedRef.current = true;
       stopScan();
     };
   }, [initializeCamera, stopScan]);
@@ -396,13 +446,13 @@ const ScanBarcodePage: React.FC = () => {
 
   const handleToggleFlash = async () => {
     if (!streamRef.current) {
-      setScanError("Camera not available to activate flash");
+      setScanError("Kamera tidak tersedia untuk mengaktifkan lampu kilat"); // cSpell:ignore Kamera tidak tersedia untuk mengaktifkan lampu kilat
       return;
     }
 
     const track = streamRef.current.getVideoTracks()[0];
     if (!track) {
-      setScanError("Video track not found");
+      setScanError("Track video tidak ditemukan"); // cSpell:ignore Track video tidak ditemukan
       return;
     }
 
@@ -414,38 +464,9 @@ const ScanBarcodePage: React.FC = () => {
       setScanError(null);
     } catch (err: unknown) {
       console.error("Error toggling flash:", err);
-      setScanError("Failed to activate flash. Feature may not be supported.");
-    }
-  };
-
-  const handleSwitchCamera = async () => {
-    if (!hasMultipleCameras) {
-      setScanError("Only one camera available");
-      return;
-    }
-
-    try {
-      console.log("Switching camera...");
-
-      // Stop current scan completely
-      stopScan();
-
-      // Wait for cleanup to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Switch camera
-      setCurrentCamera((prev) =>
-        prev === "environment" ? "user" : "environment"
+      setScanError(
+        "Gagal mengaktifkan lampu kilat. Fitur mungkin tidak didukung." // cSpell:ignore Gagal mengaktifkan lampu kilat Fitur mungkin tidak didukung
       );
-
-      // Wait a bit more for camera to be released
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Start with new camera
-      await startScan();
-    } catch (err: unknown) {
-      console.error("Error switching camera:", err);
-      setScanError("Failed to switch camera. Please try manually.");
     }
   };
 
@@ -463,6 +484,30 @@ const ScanBarcodePage: React.FC = () => {
     startScan();
   };
 
+  // Function to get the appropriate camera icon
+  const getCameraIcon = () => {
+    if (isProcessingBarcode) {
+      return (
+        <FiberManualRecordIcon sx={{ fontSize: "28px", color: "#ff1744" }} />
+      );
+    }
+    if (isScanning) {
+      return <StopIcon sx={{ fontSize: "28px" }} />;
+    }
+    return <PlayArrowIcon sx={{ fontSize: "28px" }} />;
+  };
+
+  // Function to get the appropriate tooltip text
+  const getCameraTooltip = () => {
+    if (isProcessingBarcode) {
+      return "Memproses Barcode"; // cSpell:ignore Memproses
+    }
+    if (isScanning) {
+      return "Hentikan Pemindaian"; // cSpell:ignore Hentikan Pemindaian
+    }
+    return "Mulai Pemindaian"; // cSpell:ignore Mulai Pemindaian
+  };
+
   return (
     <Box
       sx={{
@@ -476,7 +521,7 @@ const ScanBarcodePage: React.FC = () => {
       }}
     >
       <Header
-        title="Scan Barcode"
+        title="Pindai Barcode" // cSpell:ignore Pindai
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -498,7 +543,7 @@ const ScanBarcodePage: React.FC = () => {
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Tooltip title="Scan History">
+            <Tooltip title="Riwayat Pemindaian">
               <IconButton
                 onClick={handleScanHistory}
                 sx={{
@@ -527,8 +572,8 @@ const ScanBarcodePage: React.FC = () => {
               justifyContent: "center",
               alignItems: "center",
               minHeight: "400px",
-              maxHeight: "60vh", // Constrain maximum height
-              aspectRatio: "4/3", // Set a consistent aspect ratio
+              maxHeight: "60vh",
+              aspectRatio: "4/3",
             }}
           >
             <video
@@ -551,12 +596,12 @@ const ScanBarcodePage: React.FC = () => {
                 <CircularProgress />
                 {isProcessingBarcode && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Processing barcode...
+                    Memproses barcode... {/* cSpell:ignore Memproses */}
                   </Typography>
                 )}
                 {isLoadingCameras && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Loading camera...
+                    Memuat kamera... {/* cSpell:ignore Memuat kamera */}
                   </Typography>
                 )}
               </Box>
@@ -568,15 +613,16 @@ const ScanBarcodePage: React.FC = () => {
                   sx={{ fontSize: 64, color: primaryDarkColor, mb: 2 }}
                 />
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Camera Access Required
+                  Akses Kamera Diperlukan{" "}
+                  {/* cSpell:ignore Akses Kamera Diperlukan */}
                 </Typography>
                 <Typography
                   variant="body2"
                   sx={{ mb: 3, color: theme.palette.text.secondary }}
                 >
-                  The application needs permission to access the camera to scan
-                  bar codes
-                  {/* cSpell:ignore barcodes */}
+                  Aplikasi memerlukan izin untuk mengakses kamera untuk memindai{" "}
+                  {/* cSpell:ignore Aplikasi memerlukan izin untuk mengakses kamera untuk memindai */}
+                  barcode
                 </Typography>
                 <Button
                   variant="contained"
@@ -590,28 +636,30 @@ const ScanBarcodePage: React.FC = () => {
                   }}
                   startIcon={<CameraAltIcon />}
                 >
-                  Allow Camera Access
+                  Izinkan Akses Kamera{" "}
+                  {/* cSpell:ignore Izinkan Akses Kamera */}
                 </Button>
               </Box>
             )}
 
             {!isLoadingCameras && permissionDenied && (
               <Box sx={{ position: "absolute", textAlign: "center", p: 3 }}>
-                <CameraAltIcon
+                <StopIcon
                   sx={{ fontSize: 64, color: theme.palette.error.main, mb: 2 }}
                 />
                 <Typography
                   variant="h6"
                   sx={{ mb: 2, color: theme.palette.error.main }}
                 >
-                  Camera Permission Denied
+                  Izin Kamera Ditolak {/* cSpell:ignore Izin Kamera Ditolak */}
                 </Typography>
                 <Typography
                   variant="body2"
                   sx={{ mb: 3, color: theme.palette.text.secondary }}
                 >
-                  Please enable camera permission in your browser settings, then
-                  try again
+                  Harap aktifkan izin kamera di pengaturan browser Anda,{" "}
+                  {/* cSpell:ignore Harap aktifkan izin kamera pengaturan browser Anda */}
+                  kemudian coba lagi {/* cSpell:ignore kemudian coba lagi */}
                 </Typography>
                 <Button
                   variant="outlined"
@@ -628,7 +676,7 @@ const ScanBarcodePage: React.FC = () => {
                   }}
                   startIcon={<CameraAltIcon />}
                 >
-                  Try Again
+                  Coba Lagi {/* cSpell:ignore Coba Lagi */}
                 </Button>
               </Box>
             )}
@@ -660,7 +708,7 @@ const ScanBarcodePage: React.FC = () => {
                         size="small"
                         onClick={handleRetry}
                       >
-                        Retry
+                        Coba Lagi {/* cSpell:ignore Coba Lagi */}
                       </Button>
                     }
                   >
@@ -690,11 +738,13 @@ const ScanBarcodePage: React.FC = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              gap: 4,
+              gap: 3,
               py: 1,
             }}
           >
-            <Tooltip title={isFlashOn ? "Turn Off Flash" : "Turn On Flash"}>
+            <Tooltip
+              title={isFlashOn ? "Matikan Lampu Kilat" : "Nyalakan Lampu Kilat"} // cSpell:ignore Matikan Lampu Kilat Nyalakan
+            >
               <span>
                 <IconButton
                   onClick={handleToggleFlash}
@@ -716,59 +766,38 @@ const ScanBarcodePage: React.FC = () => {
               </span>
             </Tooltip>
 
-            <Tooltip title={isScanning ? "Stop Scan" : "Start Scan"}>
+            <Tooltip title={getCameraTooltip()}>
               <IconButton
                 onClick={isScanning ? stopScan : startScan}
                 disabled={
-                  isLoadingCameras ||
-                  isProcessingBarcode ||
-                  needsPermission ||
-                  permissionDenied
+                  isLoadingCameras || needsPermission || permissionDenied
                 }
                 sx={{
-                  padding: "16px",
-                  background: primaryDarkColor,
+                  padding: "20px",
+                  background: isProcessingBarcode
+                    ? "#ff1744"
+                    : primaryDarkColor,
                   borderRadius: "50%",
                   color: "white",
-                  transform: "scale(1.15)",
-                  "&:hover": { background: "#1E2532" },
+                  transform: "scale(1.2)",
+                  "&:hover": {
+                    background: isProcessingBarcode ? "#d50000" : "#1E2532",
+                    transform: "scale(1.25)",
+                  },
                   "&:disabled": {
                     background: theme.palette.grey[400],
                     color: theme.palette.grey[200],
+                    transform: "scale(1.2)",
                   },
+                  transition: "all 0.2s ease-in-out",
                 }}
               >
-                <CameraAltIcon sx={{ fontSize: "28px" }} />
+                {getCameraIcon()}
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Switch Camera">
-              <span>
-                <IconButton
-                  onClick={handleSwitchCamera}
-                  disabled={
-                    !hasMultipleCameras ||
-                    isLoadingCameras ||
-                    isProcessingBarcode ||
-                    needsPermission ||
-                    permissionDenied
-                  }
-                  sx={{
-                    padding: "12px",
-                    border: scannerAreaOutline,
-                    borderRadius: "6px",
-                    color: primaryDarkColor,
-                    "&:hover": { background: "rgba(45, 54, 72, 0.08)" },
-                    "&:disabled": {
-                      borderColor: theme.palette.grey[300],
-                      color: theme.palette.grey[400],
-                    },
-                  }}
-                >
-                  <FlipCameraIosIcon />
-                </IconButton>
-              </span>
-            </Tooltip>
+            {/* Empty space to balance the layout */}
+            <Box sx={{ width: "48px" }} />
           </Box>
         </Box>
       </Container>
