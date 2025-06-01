@@ -85,7 +85,7 @@ export const fetchItemStockByBarcode = async (
 };
 
 export const scanUpdateItemStock = async (id: string, data: Partial<ScanStockChangeRequest>) => {
-  const response = await apiClient.patch(`/item-stocks/${id}`, data)
+  const response = await apiClient.patch(`/item-stocks/${id}/scan`, data)
 
   const result:ApiResponse<ItemStock> = await response.json()
 

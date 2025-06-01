@@ -20,6 +20,6 @@ export interface ScanStockChangeRequest {
 }
 
 export interface BarcodeScanResponse {
-  id: string;
+  itemStockId: string;
   itemName: string;
 }
