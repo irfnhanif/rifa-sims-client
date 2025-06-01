@@ -23,23 +23,21 @@ import {
   DecodeHintType,
   BarcodeFormat,
   NotFoundException,
-} from "@zxing/library"; // cSpell:ignore zxing
+} from "@zxing/library";
 
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 import { fetchItemStockByBarcode } from "../../api/stocks";
 import type { BarcodeScanResponse } from "../../types/item-stock";
 
-// Icons
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import FlashOffIcon from "@mui/icons-material/FlashOff";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import CameraAltIcon from "@mui/icons-material/CameraAlt"
+import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import HistoryIcon from "@mui/icons-material/History";
 
-// Extend MediaTrackCapabilities to include torch
 interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
 }
@@ -84,28 +82,21 @@ const ScanBarcodePage: React.FC = () => {
   }, []);
 
   const stopScan = useCallback(() => {
-    console.log("Stopping scan...");
-
-    // Stop scanning
     scanningRef.current = false;
 
-    // Stop video stream
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => {
         track.stop();
-        console.log("Track stopped:", track.kind);
       });
       streamRef.current = null;
     }
 
-    // Clear video
     if (videoRef.current) {
       videoRef.current.srcObject = null;
       videoRef.current.pause();
-      videoRef.current.load(); // Reset video element completely
+      videoRef.current.load();
     }
 
-    // Reset reader
     if (codeReaderRef.current) {
       try {
         codeReaderRef.current.reset();
@@ -123,7 +114,6 @@ const ScanBarcodePage: React.FC = () => {
 
   const checkDeviceCapabilities = useCallback(async () => {
     try {
-      // Check for flash support
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
@@ -136,7 +126,6 @@ const ScanBarcodePage: React.FC = () => {
         setHasFlash(!!capabilities.torch);
       }
 
-      // Stop the test stream
       stream.getTracks().forEach((track) => track.stop());
     } catch (err) {
       console.error("Error checking device capabilities:", err);
@@ -165,7 +154,7 @@ const ScanBarcodePage: React.FC = () => {
         setPermissionDenied(true);
         setNeedsPermission(false);
         setScanError(
-          "Izin kamera diperlukan untuk memindai barcode. Harap aktifkan akses kamera di pengaturan browser Anda." // cSpell:ignore Izin kamera diperlukan untuk memindai Harap aktifkan akses pengaturan browser Anda
+          "Izin kamera diperlukan untuk memindai barcode. Harap aktifkan akses kamera di pengaturan browser Anda."
         );
       }
       return false;
@@ -177,15 +166,12 @@ const ScanBarcodePage: React.FC = () => {
       if (isProcessingBarcode || !scanningRef.current || isUnmountedRef.current)
         return;
 
-      // Stop scanning immediately when barcode is found
       scanningRef.current = false;
       setIsProcessingBarcode(true);
 
-      // Stop the camera stream directly here
       stopScan();
 
       try {
-        console.log("Processing barcode:", barcode);
         const response: BarcodeScanResponse[] = await fetchItemStockByBarcode(
           barcode
         );
@@ -193,7 +179,7 @@ const ScanBarcodePage: React.FC = () => {
         if (isUnmountedRef.current) return;
 
         if (response.length === 0) {
-          setScanError("Barcode tidak ditemukan dalam sistem"); // cSpell:ignore tidak ditemukan dalam sistem
+          setScanError("Barcode tidak ditemukan dalam sistem");
           setIsProcessingBarcode(false);
           return;
         }
@@ -210,7 +196,7 @@ const ScanBarcodePage: React.FC = () => {
       } catch (error) {
         console.error("Error processing barcode:", error);
         if (!isUnmountedRef.current) {
-          setScanError("Gagal memproses barcode. Silakan coba lagi."); // cSpell:ignore Gagal memproses Silakan coba lagi
+          setScanError("Gagal memproses barcode. Silakan coba lagi.");
           setIsProcessingBarcode(false);
         }
       }
@@ -224,28 +210,23 @@ const ScanBarcodePage: React.FC = () => {
       return;
     }
 
-    console.log("Starting barcode scanning");
     scanningRef.current = true;
 
     try {
-      // Use decodeOnceFromVideoDevice for single scan
       const result = await codeReaderRef.current.decodeOnceFromVideoDevice(
-        undefined, // Use default video device
+        undefined,
         videoRef.current
       );
 
       if (result && scanningRef.current && !isUnmountedRef.current) {
         const barcode = result.getText();
-        console.log("Barcode detected:", barcode);
         await handleBarcodeDetected(barcode);
       }
     } catch (error) {
       if (isUnmountedRef.current) return;
 
       if (error instanceof NotFoundException) {
-        // No barcode found, continue scanning
         if (scanningRef.current) {
-          // Retry after a short delay
           setTimeout(() => {
             if (scanningRef.current && !isUnmountedRef.current) {
               startBarcodeScanning();
@@ -255,7 +236,6 @@ const ScanBarcodePage: React.FC = () => {
       } else {
         console.error("Unexpected error during barcode scanning:", error);
         if (scanningRef.current) {
-          // Retry on unexpected errors
           setTimeout(() => {
             if (scanningRef.current && !isUnmountedRef.current) {
               startBarcodeScanning();
@@ -275,7 +255,6 @@ const ScanBarcodePage: React.FC = () => {
     setIsProcessingBarcode(false);
 
     try {
-      console.log("Requesting camera access...");
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "environment",
@@ -289,8 +268,6 @@ const ScanBarcodePage: React.FC = () => {
         return;
       }
 
-      console.log("Camera access granted");
-
       videoRef.current.srcObject = stream;
       streamRef.current = stream;
 
@@ -301,7 +278,6 @@ const ScanBarcodePage: React.FC = () => {
         }
 
         const handleLoadedMetadata = () => {
-          console.log("Video metadata loaded");
           if (videoRef.current) {
             videoRef.current.removeEventListener(
               "loadedmetadata",
@@ -329,12 +305,8 @@ const ScanBarcodePage: React.FC = () => {
 
       if (videoRef.current) {
         try {
-          // Check if video is already playing before calling play()
           if (videoRef.current.paused || videoRef.current.readyState < 3) {
             await videoRef.current.play();
-            console.log("Video playback started");
-          } else {
-            console.log("Video already playing");
           }
         } catch (playError) {
           console.error("Error starting video playbook:", playError);
@@ -344,17 +316,14 @@ const ScanBarcodePage: React.FC = () => {
 
       if (isUnmountedRef.current) return;
 
-      // Initialize barcode reader
       codeReaderRef.current = new BrowserMultiFormatReader(hints);
 
-      // Start scanning after a short delay to ensure video is ready
       setTimeout(() => {
         if (!isUnmountedRef.current) {
           startBarcodeScanning();
         }
       }, 500);
 
-      // Check flash capability
       const track = stream.getVideoTracks()[0];
       const capabilities =
         track.getCapabilities() as ExtendedMediaTrackCapabilities;
@@ -366,17 +335,16 @@ const ScanBarcodePage: React.FC = () => {
 
       console.error("Failed to start scanner:", err);
       let message = `Gagal memulai kamera: ${
-        // cSpell:ignore Gagal memulai kamera
-        err instanceof Error ? err.message : "Kesalahan tidak diketahui" // cSpell:ignore Kesalahan tidak diketahui
+        err instanceof Error ? err.message : "Kesalahan tidak diketahui"
       }.`;
 
       if (err instanceof Error && err.name === "NotAllowedError") {
         message =
-          "Izin kamera ditolak. Harap aktifkan akses kamera di pengaturan browser Anda."; // cSpell:ignore Izin kamera ditolak Harap aktifkan akses pengaturan browser Anda
+          "Izin kamera ditolak. Harap aktifkan akses kamera di pengaturan browser Anda.";
         setPermissionDenied(true);
       } else if (err instanceof Error && err.name === "NotReadableError") {
         message =
-          "Kamera sedang digunakan atau tidak tersedia. Silakan coba lagi."; // cSpell:ignore Kamera sedang digunakan atau tidak tersedia Silakan coba lagi
+          "Kamera sedang digunakan atau tidak tersedia. Silakan coba lagi.";
       }
       setScanError(message);
       setIsScanning(false);
@@ -405,12 +373,11 @@ const ScanBarcodePage: React.FC = () => {
     isUnmountedRef.current = false;
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setScanError("Browser Anda tidak mendukung akses kamera"); // cSpell:ignore Browser Anda tidak mendukung akses kamera
+      setScanError("Browser Anda tidak mendukung akses kamera");
       setIsLoadingCameras(false);
       return;
     }
 
-    // Check if permission was already granted
     navigator.permissions
       ?.query({ name: "camera" as PermissionName })
       .then((result) => {
@@ -427,13 +394,11 @@ const ScanBarcodePage: React.FC = () => {
       .catch(() => {
         if (isUnmountedRef.current) return;
 
-        // Fallback for browsers that don't support permissions API
         setNeedsPermission(true);
         setIsLoadingCameras(false);
       });
 
     return () => {
-      console.log("Component unmounting, cleaning up...");
       isUnmountedRef.current = true;
       stopScan();
     };
@@ -446,13 +411,13 @@ const ScanBarcodePage: React.FC = () => {
 
   const handleToggleFlash = async () => {
     if (!streamRef.current) {
-      setScanError("Kamera tidak tersedia untuk mengaktifkan lampu kilat"); // cSpell:ignore Kamera tidak tersedia untuk mengaktifkan lampu kilat
+      setScanError("Kamera tidak tersedia untuk mengaktifkan lampu kilat");
       return;
     }
 
     const track = streamRef.current.getVideoTracks()[0];
     if (!track) {
-      setScanError("Track video tidak ditemukan"); // cSpell:ignore Track video tidak ditemukan
+      setScanError("Track video tidak ditemukan");
       return;
     }
 
@@ -465,7 +430,7 @@ const ScanBarcodePage: React.FC = () => {
     } catch (err: unknown) {
       console.error("Error toggling flash:", err);
       setScanError(
-        "Gagal mengaktifkan lampu kilat. Fitur mungkin tidak didukung." // cSpell:ignore Gagal mengaktifkan lampu kilat Fitur mungkin tidak didukung
+        "Gagal mengaktifkan lampu kilat. Fitur mungkin tidak didukung."
       );
     }
   };
@@ -484,7 +449,6 @@ const ScanBarcodePage: React.FC = () => {
     startScan();
   };
 
-  // Function to get the appropriate camera icon
   const getCameraIcon = () => {
     if (isProcessingBarcode) {
       return (
@@ -497,15 +461,14 @@ const ScanBarcodePage: React.FC = () => {
     return <PlayArrowIcon sx={{ fontSize: "28px" }} />;
   };
 
-  // Function to get the appropriate tooltip text
   const getCameraTooltip = () => {
     if (isProcessingBarcode) {
-      return "Memproses Barcode"; // cSpell:ignore Memproses
+      return "Memproses Barcode";
     }
     if (isScanning) {
-      return "Hentikan Pemindaian"; // cSpell:ignore Hentikan Pemindaian
+      return "Hentikan Pemindaian";
     }
-    return "Mulai Pemindaian"; // cSpell:ignore Mulai Pemindaian
+    return "Mulai Pemindaian";
   };
 
   return (
@@ -521,7 +484,7 @@ const ScanBarcodePage: React.FC = () => {
       }}
     >
       <Header
-        title="Pindai Barcode" // cSpell:ignore Pindai
+        title="Pindai Barcode"
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -596,12 +559,12 @@ const ScanBarcodePage: React.FC = () => {
                 <CircularProgress />
                 {isProcessingBarcode && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Memproses barcode... {/* cSpell:ignore Memproses */}
+                    Memproses barcode...
                   </Typography>
                 )}
                 {isLoadingCameras && (
                   <Typography variant="body2" sx={{ mt: 1 }}>
-                    Memuat kamera... {/* cSpell:ignore Memuat kamera */}
+                    Memuat kamera...
                   </Typography>
                 )}
               </Box>
@@ -613,15 +576,13 @@ const ScanBarcodePage: React.FC = () => {
                   sx={{ fontSize: 64, color: primaryDarkColor, mb: 2 }}
                 />
                 <Typography variant="h6" sx={{ mb: 2 }}>
-                  Akses Kamera Diperlukan{" "}
-                  {/* cSpell:ignore Akses Kamera Diperlukan */}
+                  Akses Kamera Diperlukan
                 </Typography>
                 <Typography
                   variant="body2"
                   sx={{ mb: 3, color: theme.palette.text.secondary }}
                 >
-                  Aplikasi memerlukan izin untuk mengakses kamera untuk memindai{" "}
-                  {/* cSpell:ignore Aplikasi memerlukan izin untuk mengakses kamera untuk memindai */}
+                  Aplikasi memerlukan izin untuk mengakses kamera untuk memindai
                   barcode
                 </Typography>
                 <Button
@@ -636,8 +597,7 @@ const ScanBarcodePage: React.FC = () => {
                   }}
                   startIcon={<CameraAltIcon />}
                 >
-                  Izinkan Akses Kamera{" "}
-                  {/* cSpell:ignore Izinkan Akses Kamera */}
+                  Izinkan Akses Kamera
                 </Button>
               </Box>
             )}
@@ -651,15 +611,14 @@ const ScanBarcodePage: React.FC = () => {
                   variant="h6"
                   sx={{ mb: 2, color: theme.palette.error.main }}
                 >
-                  Izin Kamera Ditolak {/* cSpell:ignore Izin Kamera Ditolak */}
+                  Izin Kamera Ditolak
                 </Typography>
                 <Typography
                   variant="body2"
                   sx={{ mb: 3, color: theme.palette.text.secondary }}
                 >
-                  Harap aktifkan izin kamera di pengaturan browser Anda,{" "}
-                  {/* cSpell:ignore Harap aktifkan izin kamera pengaturan browser Anda */}
-                  kemudian coba lagi {/* cSpell:ignore kemudian coba lagi */}
+                  Harap aktifkan izin kamera di pengaturan browser Anda,
+                  kemudian coba lagi
                 </Typography>
                 <Button
                   variant="outlined"
@@ -676,7 +635,7 @@ const ScanBarcodePage: React.FC = () => {
                   }}
                   startIcon={<CameraAltIcon />}
                 >
-                  Coba Lagi {/* cSpell:ignore Coba Lagi */}
+                  Coba Lagi
                 </Button>
               </Box>
             )}
@@ -708,7 +667,7 @@ const ScanBarcodePage: React.FC = () => {
                         size="small"
                         onClick={handleRetry}
                       >
-                        Coba Lagi {/* cSpell:ignore Coba Lagi */}
+                        Coba Lagi
                       </Button>
                     }
                   >
@@ -743,7 +702,7 @@ const ScanBarcodePage: React.FC = () => {
             }}
           >
             <Tooltip
-              title={isFlashOn ? "Matikan Lampu Kilat" : "Nyalakan Lampu Kilat"} // cSpell:ignore Matikan Lampu Kilat Nyalakan
+              title={isFlashOn ? "Matikan Lampu Kilat" : "Nyalakan Lampu Kilat"}
             >
               <span>
                 <IconButton
@@ -796,7 +755,6 @@ const ScanBarcodePage: React.FC = () => {
               </IconButton>
             </Tooltip>
 
-            {/* Empty space to balance the layout */}
             <Box sx={{ width: "48px" }} />
           </Box>
         </Box>
