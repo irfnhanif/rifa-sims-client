@@ -15,26 +15,34 @@ import {
   Paper,
   useTheme,
   Tooltip,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import {
   BrowserMultiFormatReader,
-  IScannerControls,
-  DecodeHintType, // Import DecodeHintType
-  BarcodeFormat, // Import BarcodeFormat
-} from "@zxing-js/library";
+  DecodeHintType,
+  BarcodeFormat,
+  NotFoundException,
+} from "@zxing/library"; // cSpell:ignore zxing
 
-import Header from "../../components/Header"; // Adjust path as needed
-import Footer from "../../components/Footer"; // Adjust path as needed
+import Header from "../../components/Header";
+import Footer from "../../components/Footer";
+import { fetchItemStockByBarcode } from "../../api/stocks";
+import type { BarcodeScanResponse } from "../../types/item-stock";
 
 // Icons
 import FlashOnIcon from "@mui/icons-material/FlashOn";
 import FlashOffIcon from "@mui/icons-material/FlashOff";
-import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import FlipCameraIosIcon from "@mui/icons-material/FlipCameraIos";
+import HistoryIcon from "@mui/icons-material/History";
 
-const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
+// Extend MediaTrackCapabilities to include torch
+interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
+  torch?: boolean;
+}
+
+const ScanBarcodePage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const primaryDarkColor = "#2D3648";
@@ -42,20 +50,26 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
   const scannerAreaOutline = `2px solid ${primaryDarkColor}`;
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [selectedDeviceId, setSelectedDeviceId] = useState<string | undefined>(
-    undefined
-  );
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scanningRef = useRef<boolean>(false);
+
   const [scanError, setScanError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isLoadingCameras, setIsLoadingCameras] = useState<boolean>(true);
   const [isFlashOn, setIsFlashOn] = useState<boolean>(false);
-  const [scannerControls, setScannerControls] =
-    useState<IScannerControls | null>(null);
+  const [isProcessingBarcode, setIsProcessingBarcode] =
+    useState<boolean>(false);
+  const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
+  const [needsPermission, setNeedsPermission] = useState<boolean>(false);
+  const [currentCamera, setCurrentCamera] = useState<"environment" | "user">(
+    "environment"
+  );
+  const [hasFlash, setHasFlash] = useState<boolean>(false);
+  const [hasMultipleCameras, setHasMultipleCameras] = useState<boolean>(false);
 
-  const codeReader = useMemo(() => {
-    // --- UPDATED: Configure hints for 1D barcodes ---
-    const hints = new Map();
+  const hints = useMemo(() => {
+    const hintMap = new Map();
     const oneDFormats = [
       BarcodeFormat.UPC_A,
       BarcodeFormat.UPC_E,
@@ -64,179 +78,389 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
       BarcodeFormat.CODE_39,
       BarcodeFormat.CODE_93,
       BarcodeFormat.CODE_128,
-      BarcodeFormat.ITF, // Interleaved 2 of 5
-      BarcodeFormat.CODABAR,
-      // Add other 1D formats if needed, e.g., BarcodeFormat.RSS_14
+      BarcodeFormat.ITF,
     ];
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, oneDFormats);
-    // Optionally, if you want to be very strict and potentially improve performance for *only* 1D:
-    // hints.set(DecodeHintType.ASSUME_CODE_39_CHECK_DIGIT, true); // Example if you primarily use Code 39
-    // hints.set(DecodeHintType.TRY_HARDER, true); // Can sometimes help but might slow down
-
-    return new BrowserMultiFormatReader(hints);
-    // --- END OF UPDATE ---
+    hintMap.set(DecodeHintType.POSSIBLE_FORMATS, oneDFormats);
+    return hintMap;
   }, []);
 
-  const startScan = useCallback(
-    async (deviceId?: string) => {
-      if (!videoRef.current) return;
-      setIsScanning(true);
-      setScanError(null);
+  const checkDeviceCapabilities = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoInputDevices = devices.filter(
+        (device) => device.kind === "videoinput"
+      );
+      setHasMultipleCameras(videoInputDevices.length > 1);
 
-      const targetDeviceId =
-        deviceId ||
-        selectedDeviceId ||
-        (videoDevices.length > 0 ? videoDevices[0].deviceId : undefined);
-      if (!targetDeviceId) {
-        setScanError("Tidak ada kamera yang ditemukan atau dipilih.");
-        setIsScanning(false);
-        setIsLoadingCameras(false);
-        return;
+      // Check for flash support
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+
+      const track = stream.getVideoTracks()[0];
+      const capabilities =
+        track.getCapabilities() as ExtendedMediaTrackCapabilities;
+      setHasFlash(!!capabilities.torch);
+
+      // Stop the test stream
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (err) {
+      console.error("Error checking device capabilities:", err);
+      setHasMultipleCameras(false);
+      setHasFlash(false);
+    }
+  }, []);
+
+  const requestCameraPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: currentCamera },
+      });
+      stream.getTracks().forEach((track) => track.stop());
+      setPermissionDenied(false);
+      setNeedsPermission(false);
+      return true;
+    } catch (error) {
+      console.error("Camera permission denied:", error);
+      setPermissionDenied(true);
+      setNeedsPermission(false);
+      setScanError(
+        "Camera permission is required to scan bar codes. Please enable camera access in your browser settings."
+      ); // cSpell:ignore barcodes
+      return false;
+    }
+  }, [currentCamera]);
+
+  const handleBarcodeDetected = useCallback(
+    async (barcode: string) => {
+      if (isProcessingBarcode || !scanningRef.current) return;
+
+      // Stop scanning immediately when barcode is found
+      scanningRef.current = false;
+      setIsProcessingBarcode(true);
+
+      // Stop the camera stream directly here
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+        streamRef.current = null;
       }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+        videoRef.current.pause();
+      }
+
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+        codeReaderRef.current = null;
+      }
+
+      setIsScanning(false);
+      setIsFlashOn(false);
 
       try {
-        // Ensure previous streams are stopped if any controls exist
-        if (scannerControls) {
-          scannerControls.stop();
-          setScannerControls(null);
-        }
-        codeReader.reset(); // Reset before starting a new scan
-
-        const controls = await codeReader.decodeFromVideoDevice(
-          targetDeviceId,
-          videoRef.current,
-          (result, error, innerControls) => {
-            if (!scannerControls && innerControls) {
-              // Store controls as soon as available
-              setScannerControls(innerControls);
-            }
-            if (result) {
-              console.log("Barcode detected:", result.getText());
-              alert(`Barcode Terdeteksi: ${result.getText()}`);
-              // onScanSuccess?.(result.getText());
-              // Consider stopping the scan to prevent multiple detections or let user decide
-              // innerControls.stop(); // Or use the main stopScan()
-              setIsScanning(false);
-            }
-            if (
-              error &&
-              !(error.name === "NotFoundException") &&
-              !(error.name === "FormatException") &&
-              !(error.name === "ChecksumException")
-            ) {
-              // FormatException and ChecksumException can also be frequent for non-matching symbols
-              // console.error("Scan error:", error); // Log for debugging but maybe don't show all to user
-            }
-          }
+        console.log("Processing barcode:", barcode);
+        const response: BarcodeScanResponse[] = await fetchItemStockByBarcode(
+          barcode
         );
-        // Store controls if the callback didn't (e.g., if it was only called on first frame)
-        if (controls && !scannerControls) {
-          setScannerControls(controls);
+
+        if (response.length === 0) {
+          setScanError("Barcode not found in system");
+          setIsProcessingBarcode(false);
+          return;
         }
-      } catch (err: any) {
-        console.error("Failed to start scanner:", err);
-        let message = `Gagal memulai kamera: ${err.message}.`;
-        if (err.name === "NotAllowedError") {
-          message =
-            "Izin kamera tidak diberikan. Mohon aktifkan izin kamera di pengaturan browser Anda.";
+
+        if (response.length === 1) {
+          navigate(`/input-scan/${response[0].id}`, {
+            state: { itemName: response[0].itemName, barcode },
+          });
+        } else {
+          navigate("/choose-item", {
+            state: { items: response, barcode },
+          });
         }
-        setScanError(message);
-        setIsScanning(false);
+      } catch (error) {
+        console.error("Error processing barcode:", error);
+        setScanError("Failed to process barcode. Please try again.");
+        setIsProcessingBarcode(false);
       }
     },
-    [
-      codeReader,
-      selectedDeviceId,
-      videoDevices,
-      scannerControls /*, onScanSuccess*/,
-    ]
+    [navigate, isProcessingBarcode]
   );
 
-  const stopScan = useCallback(() => {
-    if (scannerControls) {
-      scannerControls.stop();
-      setScannerControls(null);
+  const startBarcodeScanning = useCallback(async () => {
+    if (!codeReaderRef.current || !videoRef.current) {
+      console.error("Barcode reader or video not initialized");
+      return;
     }
-    // codeReader.reset(); // Reset can be called before starting a new scan instead of always on stop
+
+    console.log("Starting barcode scanning");
+    scanningRef.current = true;
+
+    try {
+      // Use decodeOnceFromVideoDevice for single scan
+      const result = await codeReaderRef.current.decodeOnceFromVideoDevice(
+        undefined, // Use default video device
+        videoRef.current
+      );
+
+      if (result && scanningRef.current) {
+        const barcode = result.getText();
+        console.log("Barcode detected:", barcode);
+        await handleBarcodeDetected(barcode);
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        // No barcode found, continue scanning
+        if (scanningRef.current) {
+          // Retry after a short delay
+          setTimeout(() => {
+            if (scanningRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      } else {
+        console.error("Unexpected error during barcode scanning:", error);
+        if (scanningRef.current) {
+          // Retry on unexpected errors
+          setTimeout(() => {
+            if (scanningRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [handleBarcodeDetected]);
+
+  const startScan = useCallback(async () => {
+    if (!videoRef.current) return;
+
+    setIsScanning(true);
+    setScanError(null);
+    setIsFlashOn(false);
+    setIsProcessingBarcode(false);
+
+    try {
+      console.log("Requesting camera access...");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: currentCamera,
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+      console.log("Camera access granted");
+
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+
+      await new Promise<void>((resolve, reject) => {
+        if (videoRef.current) {
+          videoRef.current.onloadedmetadata = () => {
+            console.log("Video metadata loaded");
+            resolve();
+          };
+          videoRef.current.onerror = reject;
+        }
+      });
+
+      if (videoRef.current) {
+        try {
+          // Check if video is already playing before calling play()
+          if (videoRef.current.paused || videoRef.current.readyState < 2) {
+            await videoRef.current.play();
+            console.log("Video playback started");
+          } else {
+            console.log("Video already playing");
+          }
+        } catch (playError) {
+          console.error("Error starting video playback:", playError);
+          throw new Error("Failed to start video playback");
+        }
+      }
+
+      // Initialize barcode reader
+      codeReaderRef.current = new BrowserMultiFormatReader(hints);
+
+      // Start scanning after a short delay to ensure video is ready
+      setTimeout(() => {
+        startBarcodeScanning();
+      }, 500);
+
+      // Check flash capability
+      const track = stream.getVideoTracks()[0];
+      const capabilities =
+        track.getCapabilities() as ExtendedMediaTrackCapabilities;
+      setHasFlash(!!capabilities.torch);
+    } catch (err: unknown) {
+      console.error("Failed to start scanner:", err);
+      let message = `Failed to start camera: ${
+        err instanceof Error ? err.message : "Unknown error"
+      }.`;
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        message =
+          "Camera permission denied. Please enable camera access in your browser settings.";
+        setPermissionDenied(true);
+      } else if (err instanceof Error && err.name === "NotReadableError") {
+        message = "Camera is busy or not available. Please try again.";
+      }
+      setScanError(message);
+      setIsScanning(false);
+    }
+  }, [currentCamera, hints, startBarcodeScanning]);
+
+  const stopScan = useCallback(() => {
+    console.log("Stopping scan...");
+
+    // Stop scanning
+    scanningRef.current = false;
+
+    // Stop video stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        console.log("Track stopped:", track.kind);
+      });
+      streamRef.current = null;
+    }
+
+    // Clear video
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.pause();
+      videoRef.current.load(); // Reset video element completely
+    }
+
+    // Reset reader
+    if (codeReaderRef.current) {
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
+    }
+
     setIsScanning(false);
-  }, [scannerControls]);
+    setIsFlashOn(false);
+  }, []);
+
+  const initializeCamera = useCallback(async () => {
+    setIsLoadingCameras(true);
+
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      setIsLoadingCameras(false);
+      return;
+    }
+
+    await checkDeviceCapabilities();
+    setIsLoadingCameras(false);
+  }, [requestCameraPermission, checkDeviceCapabilities]);
 
   useEffect(() => {
-    setIsLoadingCameras(true);
-    codeReader
-      .listVideoInputDevices()
-      .then((devices) => {
-        setVideoDevices(devices);
-        if (devices.length > 0) {
-          const backCamera = devices.find((device) =>
-            device.label.toLowerCase().includes("back")
-          );
-          const initialDeviceId = backCamera
-            ? backCamera.deviceId
-            : devices[0].deviceId;
-          if (!selectedDeviceId) {
-            // Only set if not already set (e.g. by user switching)
-            setSelectedDeviceId(initialDeviceId);
-          }
-          startScan(initialDeviceId);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setScanError("Your browser does not support camera access");
+      setIsLoadingCameras(false);
+      return;
+    }
+
+    // Check if permission was already granted
+    navigator.permissions
+      ?.query({ name: "camera" as PermissionName })
+      .then((result) => {
+        if (result.state === "granted") {
+          setNeedsPermission(false);
+          initializeCamera();
         } else {
-          setScanError("Tidak ada kamera yang ditemukan.");
+          setNeedsPermission(true);
+          setIsLoadingCameras(false);
         }
       })
-      .catch((err) => {
-        console.error("Error listing video devices:", err);
-        setScanError("Tidak dapat mengakses kamera. Mohon periksa izin.");
-      })
-      .finally(() => {
+      .catch(() => {
+        // Fallback for browsers that don't support permissions API
+        setNeedsPermission(true);
         setIsLoadingCameras(false);
       });
 
     return () => {
-      stopScan(); // Ensure scanner stops when component unmounts
-      codeReader.reset(); // Clean up the reader instance
+      console.log("Component unmounting, cleaning up...");
+      stopScan();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [codeReader]); // Dependency array carefully managed for camera initialization
+  }, [initializeCamera, stopScan]);
 
-  const handleToggleFlash = () => {
-    if (scannerControls && scannerControls.stream) {
-      const videoTrack = scannerControls.stream.getVideoTracks()[0];
-      if (
-        videoTrack &&
-        typeof videoTrack.applyConstraints === "function" &&
-        videoTrack.getCapabilities?.()?.torch
-      ) {
-        const currentFlashState = isFlashOn; // Rely on our state as getConstraints might not always return torch
-        videoTrack
-          .applyConstraints({ advanced: [{ torch: !currentFlashState }] })
-          .then(() => setIsFlashOn(!currentFlashState))
-          .catch((err) => {
-            console.error("Error toggling flash:", err);
-            setScanError("Fitur flash tidak didukung atau gagal diaktifkan.");
-          });
-      } else {
-        setScanError("Fitur flash tidak didukung oleh kamera ini.");
-      }
+  const handleRequestPermission = async () => {
+    setNeedsPermission(false);
+    await initializeCamera();
+  };
+
+  const handleToggleFlash = async () => {
+    if (!streamRef.current) {
+      setScanError("Camera not available to activate flash");
+      return;
+    }
+
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track) {
+      setScanError("Video track not found");
+      return;
+    }
+
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: !isFlashOn } as MediaTrackConstraintSet],
+      });
+      setIsFlashOn(!isFlashOn);
+      setScanError(null);
+    } catch (err: unknown) {
+      console.error("Error toggling flash:", err);
+      setScanError("Failed to activate flash. Feature may not be supported.");
     }
   };
 
-  const handleSwitchCamera = () => {
-    if (videoDevices.length > 1) {
+  const handleSwitchCamera = async () => {
+    if (!hasMultipleCameras) {
+      setScanError("Only one camera available");
+      return;
+    }
+
+    try {
+      console.log("Switching camera...");
+
+      // Stop current scan completely
       stopScan();
-      const currentIndex = videoDevices.findIndex(
-        (device) => device.deviceId === selectedDeviceId
+
+      // Wait for cleanup to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Switch camera
+      setCurrentCamera((prev) =>
+        prev === "environment" ? "user" : "environment"
       );
-      const nextIndex = (currentIndex + 1) % videoDevices.length;
-      const nextDeviceId = videoDevices[nextIndex].deviceId;
-      setSelectedDeviceId(nextDeviceId);
-      // startScan will be triggered by selectedDeviceId change if we make it a dependency
-      // or call it manually after a short delay for stream release
-      setTimeout(() => startScan(nextDeviceId), 200);
+
+      // Wait a bit more for camera to be released
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Start with new camera
+      await startScan();
+    } catch (err: unknown) {
+      console.error("Error switching camera:", err);
+      setScanError("Failed to switch camera. Please try manually.");
     }
   };
 
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const handleScanHistory = () => {
+    navigate("/scan-history");
+  };
+
+  const handleRetry = () => {
+    setScanError(null);
+    setIsProcessingBarcode(false);
+    startScan();
   };
 
   return (
@@ -274,30 +498,19 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
           }}
         >
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Tooltip title={isFlashOn ? "Matikan Flash" : "Nyalakan Flash"}>
-              <span>
-                {" "}
-                {/* Span wrapper for Tooltip when button is disabled */}
-                <IconButton
-                  onClick={handleToggleFlash}
-                  disabled={
-                    !isScanning ||
-                    !scannerControls ||
-                    !scannerControls.stream
-                      ?.getVideoTracks()[0]
-                      ?.getCapabilities?.()?.torch
-                  }
-                  sx={{
-                    padding: "12px",
-                    background: primaryDarkColor,
-                    borderRadius: "6px",
-                    color: "white",
-                    "&:hover": { background: "#1E2532" },
-                  }}
-                >
-                  {isFlashOn ? <FlashOffIcon /> : <FlashOnIcon />}
-                </IconButton>
-              </span>
+            <Tooltip title="Scan History">
+              <IconButton
+                onClick={handleScanHistory}
+                sx={{
+                  padding: "12px",
+                  background: primaryDarkColor,
+                  borderRadius: "6px",
+                  color: "white",
+                  "&:hover": { background: "#1E2532" },
+                }}
+              >
+                <HistoryIcon />
+              </IconButton>
             </Tooltip>
           </Box>
 
@@ -313,104 +526,205 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: "300px",
+              minHeight: "400px",
+              maxHeight: "60vh", // Constrain maximum height
+              aspectRatio: "4/3", // Set a consistent aspect ratio
             }}
           >
             <video
               ref={videoRef}
+              autoPlay
+              playsInline
+              muted
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                display: isScanning || isLoadingCameras ? "block" : "none",
+                display: isScanning ? "block" : "none",
+                maxWidth: "100%",
+                maxHeight: "100%",
               }}
             />
-            {isLoadingCameras && (
-              <CircularProgress sx={{ position: "absolute" }} />
+
+            {(isLoadingCameras || isProcessingBarcode) && (
+              <Box sx={{ position: "absolute", textAlign: "center" }}>
+                <CircularProgress />
+                {isProcessingBarcode && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Processing barcode...
+                  </Typography>
+                )}
+                {isLoadingCameras && (
+                  <Typography variant="body2" sx={{ mt: 1 }}>
+                    Loading camera...
+                  </Typography>
+                )}
+              </Box>
             )}
-            {!isLoadingCameras && scanError && !isScanning && (
-              <Alert
-                severity="error"
-                sx={{ position: "absolute", m: 2, textAlign: "center" }}
-              >
-                {scanError}
-              </Alert>
+
+            {!isLoadingCameras && needsPermission && (
+              <Box sx={{ position: "absolute", textAlign: "center", p: 3 }}>
+                <CameraAltIcon
+                  sx={{ fontSize: 64, color: primaryDarkColor, mb: 2 }}
+                />
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Camera Access Required
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 3, color: theme.palette.text.secondary }}
+                >
+                  The application needs permission to access the camera to scan
+                  bar codes
+                  {/* cSpell:ignore barcodes */}
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={handleRequestPermission}
+                  sx={{
+                    background: primaryDarkColor,
+                    color: "white",
+                    "&:hover": { background: "#1E2532" },
+                    padding: "12px 24px",
+                    borderRadius: "8px",
+                  }}
+                  startIcon={<CameraAltIcon />}
+                >
+                  Allow Camera Access
+                </Button>
+              </Box>
             )}
-            <Box
-              sx={{
-                position: "absolute",
-                width: "80%",
-                height: "50%", // Adjusted for 1D barcode proportions
-                maxWidth: "450px",
-                maxHeight: "150px", // Max sizes
-                border: "2px solid rgba(255,255,255,0.7)",
-                borderRadius: "8px",
-                boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
-              }}
-            >
+
+            {!isLoadingCameras && permissionDenied && (
+              <Box sx={{ position: "absolute", textAlign: "center", p: 3 }}>
+                <CameraAltIcon
+                  sx={{ fontSize: 64, color: theme.palette.error.main, mb: 2 }}
+                />
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 2, color: theme.palette.error.main }}
+                >
+                  Camera Permission Denied
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{ mb: 3, color: theme.palette.text.secondary }}
+                >
+                  Please enable camera permission in your browser settings, then
+                  try again
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={handleRequestPermission}
+                  sx={{
+                    borderColor: primaryDarkColor,
+                    color: primaryDarkColor,
+                    "&:hover": {
+                      borderColor: "#1E2532",
+                      backgroundColor: "rgba(45, 54, 72, 0.08)",
+                    },
+                    padding: "12px 24px",
+                    borderRadius: "8px",
+                  }}
+                  startIcon={<CameraAltIcon />}
+                >
+                  Try Again
+                </Button>
+              </Box>
+            )}
+
+            {!isLoadingCameras &&
+              !isScanning &&
+              !needsPermission &&
+              !permissionDenied &&
+              !isProcessingBarcode && (
+                <Box sx={{ position: "absolute", textAlign: "center" }}>
+                  <CameraAltIcon
+                    sx={{ fontSize: 64, color: theme.palette.grey[400] }}
+                  />
+                </Box>
+              )}
+
+            {!isLoadingCameras &&
+              scanError &&
+              !isScanning &&
+              !permissionDenied &&
+              !needsPermission && (
+                <Box sx={{ position: "absolute", textAlign: "center", p: 3 }}>
+                  <Alert
+                    severity="error"
+                    sx={{ mb: 2 }}
+                    action={
+                      <Button
+                        color="inherit"
+                        size="small"
+                        onClick={handleRetry}
+                      >
+                        Retry
+                      </Button>
+                    }
+                  >
+                    {scanError}
+                  </Alert>
+                </Box>
+              )}
+
+            {isScanning && (
               <Box
                 sx={{
-                  // Central red line
                   position: "absolute",
-                  top: "50%",
-                  left: "2%",
-                  width: "96%",
-                  height: "2px",
-                  backgroundColor: "rgba(255, 0, 0, 0.6)",
-                  transform: "translateY(-50%)",
-                  boxShadow: "0 0 3px rgba(255,0,0,0.8)",
+                  width: "80%",
+                  height: "50%",
+                  maxWidth: "450px",
+                  maxHeight: "150px",
+                  border: "2px solid rgba(255,255,255,0.7)",
+                  borderRadius: "8px",
+                  boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
                 }}
               />
-            </Box>
-          </Paper>
-
-          {scanError &&
-            isScanning && ( // Temporary scan errors (like not found) could be shown subtly or logged
-              <Typography
-                variant="caption"
-                color="error"
-                sx={{ textAlign: "center", mt: 1 }}
-              >
-                {/* {scanError} - Potentially too noisy for "NotFoundException" */}
-              </Typography>
             )}
+          </Paper>
 
           <Box
             sx={{
               display: "flex",
-              justifyContent: "space-around",
+              justifyContent: "center",
               alignItems: "center",
+              gap: 4,
               py: 1,
-              gap: { xs: 1, sm: "10px" },
             }}
           >
-            <Tooltip title="Pilih dari Galeri (belum aktif)">
+            <Tooltip title={isFlashOn ? "Turn Off Flash" : "Turn On Flash"}>
               <span>
-                {" "}
-                {/* Wrapper for disabled button tooltip */}
                 <IconButton
-                  disabled // Placeholder, not implemented
+                  onClick={handleToggleFlash}
+                  disabled={!isScanning || !hasFlash}
                   sx={{
                     padding: "12px",
                     border: scannerAreaOutline,
                     borderRadius: "6px",
                     color: primaryDarkColor,
                     "&:hover": { background: "rgba(45, 54, 72, 0.08)" },
+                    "&:disabled": {
+                      borderColor: theme.palette.grey[300],
+                      color: theme.palette.grey[400],
+                    },
                   }}
                 >
-                  <PhotoLibraryIcon />
+                  {isFlashOn ? <FlashOffIcon /> : <FlashOnIcon />}
                 </IconButton>
               </span>
             </Tooltip>
 
-            <Tooltip title={isScanning ? "Hentikan Scan" : "Mulai Scan"}>
+            <Tooltip title={isScanning ? "Stop Scan" : "Start Scan"}>
               <IconButton
-                onClick={
-                  isScanning ? stopScan : () => startScan(selectedDeviceId)
-                }
+                onClick={isScanning ? stopScan : startScan}
                 disabled={
-                  isLoadingCameras || (!isScanning && !selectedDeviceId)
-                } // Disable if no camera or still loading
+                  isLoadingCameras ||
+                  isProcessingBarcode ||
+                  needsPermission ||
+                  permissionDenied
+                }
                 sx={{
                   padding: "16px",
                   background: primaryDarkColor,
@@ -418,20 +732,26 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
                   color: "white",
                   transform: "scale(1.15)",
                   "&:hover": { background: "#1E2532" },
+                  "&:disabled": {
+                    background: theme.palette.grey[400],
+                    color: theme.palette.grey[200],
+                  },
                 }}
               >
                 <CameraAltIcon sx={{ fontSize: "28px" }} />
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Ganti Kamera">
+            <Tooltip title="Switch Camera">
               <span>
-                {" "}
-                {/* Wrapper for disabled button tooltip */}
                 <IconButton
                   onClick={handleSwitchCamera}
                   disabled={
-                    videoDevices.length <= 1 || isLoadingCameras || isScanning
+                    !hasMultipleCameras ||
+                    isLoadingCameras ||
+                    isProcessingBarcode ||
+                    needsPermission ||
+                    permissionDenied
                   }
                   sx={{
                     padding: "12px",
@@ -439,6 +759,10 @@ const ScanBarcodePage: React.FC<> = (/*{ onScanSuccess }*/) => {
                     borderRadius: "6px",
                     color: primaryDarkColor,
                     "&:hover": { background: "rgba(45, 54, 72, 0.08)" },
+                    "&:disabled": {
+                      borderColor: theme.palette.grey[300],
+                      color: theme.palette.grey[400],
+                    },
                   }}
                 >
                   <FlipCameraIosIcon />
