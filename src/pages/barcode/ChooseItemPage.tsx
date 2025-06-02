@@ -45,7 +45,7 @@ const ChooseItemPage: React.FC = () => {
       );
       if (selectedItem) {
         navigate(`/scan/${selectedItem.itemStockId}/input`, {
-          state: { itemName: selectedItem.itemName, barcode: barcode },
+          state: { itemName: selectedItem.itemName, barcode: barcode, currentStock: selectedItem.currentStock },
         });
       }
     }
@@ -63,9 +63,7 @@ const ChooseItemPage: React.FC = () => {
     fontSize: "18px",
     color: primaryDarkColor,
     lineHeight: 1.4,
-    minHeight: "32px",
-    display: "flex",
-    alignItems: "center",
+    mb: 1,
   };
 
   const itemCardDetailStyle = {
@@ -74,10 +72,6 @@ const ChooseItemPage: React.FC = () => {
     fontSize: "13px",
     color: theme.palette.text.secondary,
     lineHeight: 1.3,
-    minHeight: "16px",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
   };
 
   const itemCardDetailLabelStyle = {
@@ -141,7 +135,7 @@ const ChooseItemPage: React.FC = () => {
                     cursor: "pointer",
                     transition: "border-color 0.2s, box-shadow 0.2s",
                     display: "flex",
-                    alignItems: "center",
+                    alignItems: "flex-start",
                     gap: 1.5,
                   }}
                 >
@@ -151,39 +145,39 @@ const ChooseItemPage: React.FC = () => {
                     name="selected-item-radio"
                     slotProps={{ input: { "aria-label": item.itemName } }}
                     size="small"
+                    sx={{ mt: 0.25 }}
                   />
                   <Box
                     sx={{
                       flexGrow: 1,
                       display: "flex",
                       flexDirection: "column",
-                      gap: "12px",
+                      alignItems: "flex-start",
                     }}
                   >
                     <Typography sx={itemCardNameStyle}>
                       {item.itemName}
                     </Typography>
+
                     <Box
-                      display="flex"
-                      flexDirection={{ xs: "column", sm: "row" }}
-                      gap={{ xs: 0.5, sm: 1.5 }}
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                     >
-                      <Box sx={{ flex: { sm: 1 } }}>
-                        <Typography sx={itemCardDetailLabelStyle}>
-                          Stock ID:
-                        </Typography>
-                        <Typography sx={itemCardDetailStyle}>
-                          {item.itemStockId}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: { sm: 1 } }}>
-                        <Typography sx={itemCardDetailLabelStyle}>
-                          Barcode:
-                        </Typography>
-                        <Typography sx={itemCardDetailStyle}>
-                          {barcode || "-"}
-                        </Typography>
-                      </Box>
+                      <Typography sx={itemCardDetailLabelStyle}>
+                        Jumlah Stok: {/* cspell:disable-line */}
+                      </Typography>
+                      <Typography
+                        sx={{
+                          ...itemCardDetailStyle,
+                          fontWeight:
+                            item.currentStock <= 0 ? "bold" : "normal",
+                          color:
+                            item.currentStock <= 0
+                              ? theme.palette.error.main
+                              : theme.palette.text.secondary,
+                        }}
+                      >
+                        {item.currentStock}
+                      </Typography>
                     </Box>
                   </Box>
                 </Paper>
