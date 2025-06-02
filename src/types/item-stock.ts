@@ -22,4 +22,5 @@ export interface ScanStockChangeRequest {
 export interface BarcodeScanResponse {
   itemStockId: string;
   itemName: string;
+  currentStock: number;
 }
