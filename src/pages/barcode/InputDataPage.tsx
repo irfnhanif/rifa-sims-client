@@ -72,6 +72,7 @@ const InputDataPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["itemStocks"] });
       queryClient.invalidateQueries({ queryKey: ["itemStock", id] });
+      queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
@@ -268,7 +269,15 @@ const InputDataPage: React.FC = () => {
               </Typography>
             )}
             {currentStock !== undefined && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, width: "fit-content", mx: "auto" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  width: "fit-content",
+                  mx: "auto",
+                }}
+              >
                 <Typography
                   variant="body2"
                   sx={{
@@ -305,8 +314,6 @@ const InputDataPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 name="amount"
-                type="text"
-                inputMode="numeric"
                 value={formData.amount}
                 onChange={(e) => handleNumericChange(e.target.value)}
                 placeholder="1"
@@ -319,6 +326,14 @@ const InputDataPage: React.FC = () => {
                     ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
                     minHeight: "48px",
                     pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                    type: "text",
+                    autoComplete: "off",
                   },
                 }}
               />
