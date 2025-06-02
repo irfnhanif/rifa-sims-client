@@ -11,3 +11,20 @@ export interface StockAuditLog {
   reason: string;
   timestamp: string;
 }
+
+export interface ScanHistoryParam {
+  username: string;
+  changeTypes: StockChangeType[];
+  page: number;
+  size: number;
+  sortBy: string;
+  sortDirection: "ASC" | "DESC";
+  deleted: boolean
+}
+
+export interface PaginatedHistoryResponse {
+  logs: StockAuditLog[];
+  totalCount: number;
+  totalPages: number;
+  currentPage: number;
+}
