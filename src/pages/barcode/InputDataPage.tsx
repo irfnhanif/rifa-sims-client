@@ -42,6 +42,7 @@ interface FormErrors {
 interface LocationState {
   itemName?: string;
   barcode?: string;
+  currentStock?: number;
 }
 
 const InputDataPage: React.FC = () => {
@@ -51,7 +52,8 @@ const InputDataPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
 
-  const { itemName = "Barang Tidak Dikenal", barcode } =
+  const { itemName = "Barang Tidak Dikenal", barcode, currentStock } =
+    /* cspell:disable-line */
     (location.state as LocationState) || {};
 
   const primaryDarkColor = "#2D3648";
@@ -73,7 +75,10 @@ const InputDataPage: React.FC = () => {
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
-          formData.changeType === "IN" ? "masuk" : "keluar"
+          /* cspell:disable-line */
+          formData.changeType === "IN"
+            ? "masuk"
+            : "keluar" /* cspell:disable-line */
         }.`,
       });
 
@@ -83,7 +88,9 @@ const InputDataPage: React.FC = () => {
     },
     onError: (error: Error) => {
       console.error("Error updating stock:", error);
-      setErrors({ form: "Gagal menyimpan data ke server." });
+      setErrors({
+        form: error.message || "Gagal menyimpan data ke server.",
+      }); /* cspell:disable-line */
     },
   });
 
@@ -130,10 +137,12 @@ const InputDataPage: React.FC = () => {
     const newErrors: FormErrors = {};
     const amountVal = Number(formData.amount);
     if (formData.amount === "" || isNaN(amountVal) || amountVal <= 0) {
-      newErrors.amount = "Jumlah harus lebih besar dari 0.";
+      newErrors.amount =
+        "Jumlah harus lebih besar dari 0."; /* cspell:disable-line */
     }
     if (!formData.changeType) {
-      newErrors.changeType = "Jenis Stok harus dipilih (Masuk/Keluar).";
+      newErrors.changeType =
+        "Jenis Stok harus dipilih (Masuk/Keluar)."; /* cspell:disable-line */
     }
     return { isValid: Object.keys(newErrors).length === 0, newErrors };
   };
@@ -171,13 +180,13 @@ const InputDataPage: React.FC = () => {
         borderWidth: "2px",
       },
     },
-    "& .MuiInputBase-input": { fontFamily: "Inter, sans-serif" },
+    "& .MuiInputBase-input": { fontFamily: "Roboto, sans-serif" },
   };
 
   const labelStyles = {
     color: primaryDarkColor,
     fontSize: "14px",
-    fontFamily: "Inter, sans-serif",
+    fontFamily: "Roboto, sans-serif",
     fontWeight: "600",
     lineHeight: "16px",
     mb: 1,
@@ -196,7 +205,7 @@ const InputDataPage: React.FC = () => {
       }}
     >
       <Header
-        title="Masukkan Barang"
+        title="Masukkan Barang" /* cspell:disable-line */
         showBackButton={true}
         onBackClick={handleCancel}
       />
@@ -225,7 +234,9 @@ const InputDataPage: React.FC = () => {
         >
           {errors.form && (
             <Alert
-              severity={errors.form.includes("Berhasil") ? "success" : "error"}
+              severity={
+                errors.form.includes("Berhasil") ? "success" : "error"
+              } /* cspell:disable-line */
               sx={{ mb: 1 }}
             >
               {errors.form}
@@ -236,10 +247,10 @@ const InputDataPage: React.FC = () => {
             <Typography
               variant="h6"
               sx={{
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "Roboto, sans-serif",
                 fontWeight: "bold",
                 color: primaryDarkColor,
-                mb: 0.5,
+                mb: 1,
               }}
             >
               {itemName}
@@ -248,18 +259,46 @@ const InputDataPage: React.FC = () => {
               <Typography
                 variant="body2"
                 sx={{
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "Roboto, sans-serif",
                   color: theme.palette.text.secondary,
-                  mt: 0.5,
+                  mb: 1,
                 }}
               >
                 Barcode: {barcode}
               </Typography>
             )}
+            {currentStock !== undefined && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, width: "fit-content", mx: "auto" }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontWeight: "600",
+                    color: primaryDarkColor,
+                  }}
+                >
+                  Jumlah Stok: {/* cspell:disable-line */}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontWeight: currentStock <= 0 ? "bold" : "normal",
+                    color:
+                      currentStock <= 0
+                        ? theme.palette.error.main
+                        : theme.palette.text.secondary,
+                  }}
+                >
+                  {currentStock}
+                </Typography>
+              </Box>
+            )}
           </Paper>
 
           <Box>
-            <Typography sx={labelStyles}>Jumlah</Typography>
+            <Typography sx={labelStyles}>Jumlah</Typography>{" "}
+            {/* cspell:disable-line */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
                 fullWidth
@@ -317,7 +356,8 @@ const InputDataPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Jenis Stok</Typography>
+            <Typography sx={labelStyles}>Jenis Stok</Typography>{" "}
+            {/* cspell:disable-line */}
             <ToggleButtonGroup
               value={formData.changeType}
               exclusive
@@ -329,12 +369,12 @@ const InputDataPage: React.FC = () => {
             >
               <ToggleButton
                 value="IN"
-                aria-label="stok masuk"
+                aria-label="stok masuk" /* cspell:disable-line */
                 sx={{
                   flex: "1 1 0",
                   height: "40px",
                   borderRadius: "6px !important",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "Roboto, sans-serif",
                   fontWeight: "700",
                   fontSize: "14px",
                   lineHeight: "24px",
@@ -360,16 +400,16 @@ const InputDataPage: React.FC = () => {
                 }}
               >
                 <ArrowUpwardIcon sx={{ mr: 1, fontSize: "18px" }} />
-                Masuk
+                Masuk {/* cspell:disable-line */}
               </ToggleButton>
               <ToggleButton
                 value="OUT"
-                aria-label="stok keluar"
+                aria-label="stok keluar" /* cspell:disable-line */
                 sx={{
                   flex: "1 1 0",
                   height: "40px",
                   borderRadius: "6px !important",
-                  fontFamily: "Inter, sans-serif",
+                  fontFamily: "Roboto, sans-serif",
                   fontWeight: "700",
                   fontSize: "14px",
                   lineHeight: "24px",
@@ -395,14 +435,14 @@ const InputDataPage: React.FC = () => {
                 }}
               >
                 <ArrowDownwardIcon sx={{ mr: 1, fontSize: "18px" }} />
-                Keluar
+                Keluar {/* cspell:disable-line */}
               </ToggleButton>
             </ToggleButtonGroup>
             {errors.changeType && (
               <Typography
                 color="error"
                 variant="caption"
-                sx={{ mt: 0.5, ml: 1.5, fontFamily: "Inter, sans-serif" }}
+                sx={{ mt: 0.5, ml: 1.5, fontFamily: "Roboto, sans-serif" }}
               >
                 {errors.changeType}
               </Typography>
@@ -419,7 +459,7 @@ const InputDataPage: React.FC = () => {
                 backgroundColor: lightButtonBackground,
                 color: primaryDarkColor,
                 fontSize: "18px",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "Roboto, sans-serif",
                 fontWeight: "700",
                 lineHeight: "24px",
                 padding: "16px 24px",
@@ -428,7 +468,7 @@ const InputDataPage: React.FC = () => {
                 "&:hover": { backgroundColor: theme.palette.grey[300] },
               }}
             >
-              Batalkan
+              Batalkan {/* cspell:disable-line */}
             </Button>
             <Button
               fullWidth
@@ -446,7 +486,7 @@ const InputDataPage: React.FC = () => {
                 backgroundColor: primaryDarkColor,
                 color: "white",
                 fontSize: "18px",
-                fontFamily: "Inter, sans-serif",
+                fontFamily: "Roboto, sans-serif",
                 fontWeight: "700",
                 lineHeight: "24px",
                 padding: "16px 24px",
@@ -455,7 +495,8 @@ const InputDataPage: React.FC = () => {
                 "&:hover": { backgroundColor: "#1E2532" },
               }}
             >
-              {mutation.isPending ? "Menyimpan..." : "Simpan"}
+              {mutation.isPending ? "Menyimpan..." : "Simpan"}{" "}
+              {/* cspell:disable-line */}
             </Button>
           </Box>
         </Box>

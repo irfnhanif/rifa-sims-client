@@ -95,7 +95,7 @@ const ScanBarcodePage: React.FC = () => {
 
       if (response.length === 1) {
         navigate(`/scan/${response[0].itemStockId}/input`, {
-          state: { itemName: response[0].itemName, barcode: barcode },
+          state: { itemName: response[0].itemName, barcode: barcode, currentStock: response[0].currentStock },
         });
       } else {
         navigate("/scan/choose-item", {
