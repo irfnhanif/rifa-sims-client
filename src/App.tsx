@@ -13,6 +13,7 @@ import ScanBarcodePage from "./pages/barcode/ScanBarcodePage";
 import InputDataPage from "./pages/barcode/InputDataPage";
 import ChooseItemPage from "./pages/barcode/ChooseItemPage";
 import ScanHistoryPage from "./pages/barcode/ScanHistoryPage";
+import StockChangeHistoryPage from "./pages/audit-logs/StockChangeHistoryPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +49,7 @@ function App() {
             <Route path=":id/input" element={<InputDataPage />} />
             <Route path="history" element={<ScanHistoryPage />} />
           </Route>
+          <Route path="/stock-change-history" element={<StockChangeHistoryPage />} />
         </Routes>
       </Router>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
