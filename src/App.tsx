@@ -11,6 +11,7 @@ import EditStockPage from "./pages/stocks/EditStockPage";
 import ItemDetailPage from "./pages/stocks/ItemDetailPage";
 import ScanBarcodePage from "./pages/barcode/ScanBarcodePage";
 import InputDataPage from "./pages/barcode/InputDataPage";
+import ChooseItemPage from "./pages/barcode/ChooseItemPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,7 +43,7 @@ function App() {
           </Route>
           <Route path="/scan">
             <Route index element={<ScanBarcodePage />} />
-            {/* <Route path="/choose" /> */}
+            <Route path="choose-item" element={<ChooseItemPage />} />
             <Route path=":id/input" element={<InputDataPage />} />
           </Route>
         </Routes>
