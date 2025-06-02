@@ -12,6 +12,19 @@ export interface StockAuditLog {
   timestamp: string;
 }
 
+export interface StockChangeHistoryParam {
+  itemName: string
+  username: string;
+  changeTypes: StockChangeType[];
+  fromDate: string
+  toDate: string
+  page: number;
+  size: number;
+  sortBy: string;
+  sortDirection: "ASC" | "DESC";
+  deleted: boolean;
+}
+
 export interface ScanHistoryParam {
   username: string;
   changeTypes: StockChangeType[];

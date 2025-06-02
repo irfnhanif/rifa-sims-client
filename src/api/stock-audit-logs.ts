@@ -1,6 +1,54 @@
 import type { ApiResponse } from "../types/api";
-import type { ScanHistoryParam, PaginatedHistoryResponse } from "../types/stock-audit-log";
+import type {
+  ScanHistoryParam,
+  PaginatedHistoryResponse,
+  StockChangeHistoryParam,
+} from "../types/stock-audit-log";
 import { apiClient } from "./client";
+
+export const fetchStockAuditLogs = async (
+  params: Partial<StockChangeHistoryParam>
+) => {
+  const {
+    itemName,
+    username,
+    changeTypes,
+    fromDate,
+    toDate,
+    page = 0,
+    size = 10,
+    sortBy = "timestamp",
+    sortDirection = "DESC",
+    deleted = false,
+  } = params;
+
+  const queryParams = new URLSearchParams();
+
+  if (itemName) queryParams.append("itemName", itemName);
+  if (username) queryParams.append("username", username);
+  if (changeTypes && changeTypes.length > 0) {
+    changeTypes.forEach((type) => queryParams.append("changeTypes", type));
+  }
+  if (fromDate) queryParams.append("fromDate", fromDate);
+  if (toDate) queryParams.append("toDate", toDate);
+  queryParams.append("page", page.toString());
+  queryParams.append("size", size.toString());
+  queryParams.append("sortBy", sortBy);
+  queryParams.append("sortDirection", sortDirection);
+  queryParams.append("deleted", deleted.toString());
+
+  const response = await apiClient.get(
+    `/logs?${queryParams.toString()}`
+  );
+
+  const result: ApiResponse<PaginatedHistoryResponse> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  return result.data?.logs || [];
+};
 
 export const fetchScanHistory = async (
   params: Partial<ScanHistoryParam> = {}
@@ -12,7 +60,7 @@ export const fetchScanHistory = async (
     size = 10,
     sortBy = "timestamp",
     sortDirection = "DESC",
-    deleted = false
+    deleted = false,
   } = params;
 
   const queryParams = new URLSearchParams();
@@ -21,10 +69,12 @@ export const fetchScanHistory = async (
   queryParams.append("page", page.toString());
   queryParams.append("size", size.toString());
   queryParams.append("sortBy", sortBy);
-  queryParams.append("sortDirection", sortDirection)
+  queryParams.append("sortDirection", sortDirection);
   queryParams.append("deleted", deleted.toString());
 
-  const response = await apiClient.get(`/logs?${queryParams.toString()}`);
+  const response = await apiClient.get(
+    `/logs?${queryParams.toString()}`
+  );
 
   const result: ApiResponse<PaginatedHistoryResponse> = await response.json();
 
@@ -32,14 +82,17 @@ export const fetchScanHistory = async (
     throw new Error(result.message);
   }
 
-  if (!result.data) {
-    throw new Error("No data returned by server")
-  }
-
-  return result.data;
+  return (
+    result.data || {
+      logs: [],
+      totalCount: 0,
+      totalPages: 0,
+      currentPage: 0,
+    }
+  );
 };
 
-export const deleteStockAuditLog = async (id: string) => {
+export const deleteStockAuditLog = async (id: string): Promise<string> => {
   const response = await apiClient.delete(`/logs/${id}`);
 
   const result: ApiResponse<void> = await response.json();
