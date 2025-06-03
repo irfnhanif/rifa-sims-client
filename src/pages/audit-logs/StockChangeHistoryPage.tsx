@@ -24,6 +24,7 @@ import {
   OutlinedInput,
   Button,
   Typography,
+  Collapse,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +38,8 @@ import SearchIcon from "@mui/icons-material/Search";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import ClearIcon from "@mui/icons-material/Clear";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
 import type { StockAuditLog, StockChangeHistoryParam } from "../../types/stock-audit-log";
 import { StockChangeType } from "../../types/stock-change-type";
@@ -52,6 +55,9 @@ const StockChangeHistoryPage: React.FC = () => {
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
   const lightButtonBackground = "#EDF0F7";
+
+  // Filter collapse state
+  const [filterExpanded, setFilterExpanded] = useState(false);
 
   // Pagination state
   const [page, setPage] = useState(0);
@@ -83,6 +89,16 @@ const StockChangeHistoryPage: React.FC = () => {
     queryKey: ["stockAuditLogs", appliedFilters],
     queryFn: () => fetchStockAuditLogs(appliedFilters),
   });
+
+  // Check if any filters are active
+  const hasActiveFilters = 
+    itemNameSearch.trim() !== "" ||
+    usernameSearch.trim() !== "" ||
+    selectedChangeTypes.length > 0 ||
+    fromDate !== null ||
+    toDate !== null ||
+    sortBy !== "timestamp" ||
+    sortDirection !== "DESC";
 
   const handleBackClick = () => {
     navigate(-1);
@@ -137,6 +153,11 @@ const StockChangeHistoryPage: React.FC = () => {
 
     setAppliedFilters(filters);
     setPage(0);
+    
+    // Auto-collapse on mobile after applying filters
+    if (window.innerWidth < 768) {
+      setFilterExpanded(false);
+    }
   };
 
   const handleClearFilters = () => {
@@ -157,6 +178,10 @@ const StockChangeHistoryPage: React.FC = () => {
     
     setAppliedFilters(defaultFilters);
     setPage(0);
+  };
+
+  const toggleFilterExpanded = () => {
+    setFilterExpanded(!filterExpanded);
   };
 
   const formatTimestamp = (isoString: string): string => {
@@ -268,283 +293,320 @@ const StockChangeHistoryPage: React.FC = () => {
             <Paper
               elevation={1}
               sx={{
-                p: 3,
                 mb: 3,
                 borderRadius: "8px",
+                overflow: "hidden",
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{
-                  fontFamily: "Roboto, sans-serif",
-                  fontWeight: "600",
-                  color: primaryColor,
-                  mb: 2,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                }}
-              >
-                <FilterListIcon />
-                Filter Data {/* cspell:disable-line */}
-              </Typography>
-
+              {/* Filter Header - Always Visible */}
               <Box
                 sx={{
+                  p: { xs: 2, sm: 3 },
+                  pb: 0,
                   display: "flex",
-                  flexWrap: "wrap",
-                  gap: 2,
-                  alignItems: "stretch",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  cursor: "pointer",
                 }}
+                onClick={toggleFilterExpanded}
               >
-                {/* Item Name Search */}
-                <Box
+                <Typography
+                  variant="h6"
                   sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
+                    fontFamily: "Roboto, sans-serif",
+                    fontWeight: "600",
+                    color: primaryColor,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
                   }}
                 >
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                    label="Nama Barang" /* cspell:disable-line */
-                    value={itemNameSearch}
-                    onChange={(e) => setItemNameSearch(e.target.value)}
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "#CBD2E0" },
-                        "&:hover fieldset": { borderColor: primaryColor },
-                        "&.Mui-focused fieldset": { borderColor: primaryColor },
-                      },
-                    }}
-                  />
-                </Box>
+                  <FilterListIcon />
+                  Filter Data {/* cspell:disable-line */}
+                  {hasActiveFilters && (
+                    <Chip
+                      label="Aktif" /* cspell:disable-line */
+                      size="small"
+                      color="primary"
+                      variant="filled"
+                      sx={{ ml: 1, fontSize: "0.7rem" }}
+                    />
+                  )}
+                </Typography>
+                
+                <IconButton
+                  onClick={toggleFilterExpanded}
+                  sx={{
+                    color: primaryColor,
+                    transform: filterExpanded ? "rotate(0deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s ease-in-out",
+                  }}
+                >
+                  {filterExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
 
-                {/* Username Search */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <TextField
-                    fullWidth
-                    variant="outlined"
-                    size="small"
-                    label="Username"
-                    value={usernameSearch}
-                    onChange={(e) => setUsernameSearch(e.target.value)}
+              {/* Collapsible Filter Content */}
+              <Collapse in={filterExpanded} timeout="auto" unmountOnExit>
+                <Box sx={{ p: { xs: 2, sm: 3 }, pt: 2 }}>
+                  <Box
                     sx={{
-                      "& .MuiOutlinedInput-root": {
-                        "& fieldset": { borderColor: "#CBD2E0" },
-                        "&:hover fieldset": { borderColor: primaryColor },
-                        "&.Mui-focused fieldset": { borderColor: primaryColor },
-                      },
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 2,
+                      alignItems: "stretch",
                     }}
-                  />
-                </Box>
+                  >
+                    {/* Item Name Search */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
+                      }}
+                    >
+                      <TextField
+                        fullWidth
+                        variant="outlined"
+                        size="small"
+                        label="Nama Barang" /* cspell:disable-line */
+                        value={itemNameSearch}
+                        onChange={(e) => setItemNameSearch(e.target.value)}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": { borderColor: "#CBD2E0" },
+                            "&:hover fieldset": { borderColor: primaryColor },
+                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                          },
+                        }}
+                      />
+                    </Box>
 
-                {/* Change Types Multi-Select */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Jenis Perubahan</InputLabel> {/* cspell:disable-line */}
-                    <Select
-                      multiple
-                      value={selectedChangeTypes}
-                      onChange={handleChangeTypeChange}
-                      input={<OutlinedInput label="Jenis Perubahan" />} 
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                          {selected.map((value) => (
-                            <Chip
-                              key={value}
-                              label={getStockChangeTypeDisplay(value)}
-                              size="small"
-                            />
+                    {/* Username Search */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
+                      }}
+                    >
+                      <TextField
+                        fullWidth
+                        variant="outlined"
+                        size="small"
+                        label="Username"
+                        value={usernameSearch}
+                        onChange={(e) => setUsernameSearch(e.target.value)}
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            "& fieldset": { borderColor: "#CBD2E0" },
+                            "&:hover fieldset": { borderColor: primaryColor },
+                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                          },
+                        }}
+                      />
+                    </Box>
+
+                    {/* Change Types Multi-Select */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
+                      }}
+                    >
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Jenis Perubahan</InputLabel> {/* cspell:disable-line */}
+                        <Select
+                          multiple
+                          value={selectedChangeTypes}
+                          onChange={handleChangeTypeChange}
+                          input={<OutlinedInput label="Jenis Perubahan" />}
+                          renderValue={(selected) => (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {selected.map((value) => (
+                                <Chip
+                                  key={value}
+                                  label={getStockChangeTypeDisplay(value)}
+                                  size="small"
+                                />
+                              ))}
+                            </Box>
+                          )}
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
+                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                          }}
+                        >
+                          {getAllStockChangeTypes().map((type) => (
+                            <MenuItem key={type} value={type}>
+                              {getStockChangeTypeDisplay(type)}
+                            </MenuItem>
                           ))}
-                        </Box>
-                      )}
+                        </Select>
+                      </FormControl>
+                    </Box>
+
+                    {/* Sort By */}
+                    <Box
                       sx={{
-                        "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                        "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
-                      {getAllStockChangeTypes().map((type) => (
-                        <MenuItem key={type} value={type}>
-                          {getStockChangeTypeDisplay(type)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Box>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Urut Berdasarkan</InputLabel> {/* cspell:disable-line */}
+                        <Select
+                          value={sortBy}
+                          onChange={(e) => setSortBy(e.target.value)}
+                          label="Urut Berdasarkan" /* cspell:disable-line */
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
+                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                          }}
+                        >
+                          <MenuItem value="timestamp">Waktu</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="itemName">Nama Barang</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="username">Username</MenuItem>
+                          <MenuItem value="type">Jenis</MenuItem> {/* cspell:disable-line */}
+                        </Select>
+                      </FormControl>
+                    </Box>
 
-                {/* Sort By */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Urut Berdasarkan</InputLabel> {/* cspell:disable-line */}
-                    <Select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      label="Urut Berdasarkan" /* cspell:disable-line */
+                    {/* From Date */}
+                    <Box
                       sx={{
-                        "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                        "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
-                      <MenuItem value="timestamp">Waktu</MenuItem> {/* cspell:disable-line */}
-                      <MenuItem value="itemName">Nama Barang</MenuItem> {/* cspell:disable-line */}
-                      <MenuItem value="username">Username</MenuItem>
-                      <MenuItem value="type">Jenis</MenuItem> {/* cspell:disable-line */}
-                    </Select>
-                  </FormControl>
-                </Box>
-
-                {/* From Date */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <DatePicker
-                    label="Dari Tanggal" /* cspell:disable-line */
-                    value={fromDate}
-                    onChange={(newValue) => setFromDate(newValue)}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        fullWidth: true,
-                        sx: {
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": { borderColor: "#CBD2E0" },
-                            "&:hover fieldset": { borderColor: primaryColor },
-                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                      <DatePicker
+                        label="Dari Tanggal" /* cspell:disable-line */
+                        value={fromDate}
+                        onChange={(newValue) => setFromDate(newValue)}
+                        slotProps={{
+                          textField: {
+                            size: "small",
+                            fullWidth: true,
+                            sx: {
+                              "& .MuiOutlinedInput-root": {
+                                "& fieldset": { borderColor: "#CBD2E0" },
+                                "&:hover fieldset": { borderColor: primaryColor },
+                                "&.Mui-focused fieldset": { borderColor: primaryColor },
+                              },
+                            },
                           },
-                        },
-                      },
-                    }}
-                  />
-                </Box>
+                        }}
+                      />
+                    </Box>
 
-                {/* To Date */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <DatePicker
-                    label="Sampai Tanggal" /* cspell:disable-line */
-                    value={toDate}
-                    onChange={(newValue) => setToDate(newValue)}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        fullWidth: true,
-                        sx: {
-                          "& .MuiOutlinedInput-root": {
-                            "& fieldset": { borderColor: "#CBD2E0" },
-                            "&:hover fieldset": { borderColor: primaryColor },
-                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                    {/* To Date */}
+                    <Box
+                      sx={{
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
+                      }}
+                    >
+                      <DatePicker
+                        label="Sampai Tanggal" /* cspell:disable-line */
+                        value={toDate}
+                        onChange={(newValue) => setToDate(newValue)}
+                        slotProps={{
+                          textField: {
+                            size: "small",
+                            fullWidth: true,
+                            sx: {
+                              "& .MuiOutlinedInput-root": {
+                                "& fieldset": { borderColor: "#CBD2E0" },
+                                "&:hover fieldset": { borderColor: primaryColor },
+                                "&.Mui-focused fieldset": { borderColor: primaryColor },
+                              },
+                            },
                           },
-                        },
-                      },
-                    }}
-                  />
-                </Box>
+                        }}
+                      />
+                    </Box>
 
-                {/* Sort Direction */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Arah Urutan</InputLabel> {/* cspell:disable-line */}
-                    <Select
-                      value={sortDirection}
-                      onChange={(e) => setSortDirection(e.target.value as "ASC" | "DESC")}
-                      label="Arah Urutan" /* cspell:disable-line */
+                    {/* Sort Direction */}
+                    <Box
                       sx={{
-                        "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                        "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                        "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
-                      <MenuItem value="DESC">Terbaru ke Terlama</MenuItem> {/* cspell:disable-line */}
-                      <MenuItem value="ASC">Terlama ke Terbaru</MenuItem> {/* cspell:disable-line */}
-                    </Select>
-                  </FormControl>
-                </Box>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Arah Urutan</InputLabel> {/* cspell:disable-line */}
+                        <Select
+                          value={sortDirection}
+                          onChange={(e) => setSortDirection(e.target.value as "ASC" | "DESC")}
+                          label="Arah Urutan" /* cspell:disable-line */
+                          sx={{
+                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
+                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                          }}
+                        >
+                          <MenuItem value="DESC">Terbaru ke Terlama</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="ASC">Terlama ke Terbaru</MenuItem> {/* cspell:disable-line */}
+                        </Select>
+                      </FormControl>
+                    </Box>
 
-                {/* Action Buttons */}
-                <Box
-                  sx={{
-                    flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
-                    minWidth: { xs: "100%", sm: "200px", md: "180px" },
-                  }}
-                >
-                  <Box sx={{ display: "flex", gap: 1, height: "100%" }}>
-                    <Button
-                      variant="contained"
-                      onClick={handleApplyFilters}
-                      startIcon={<SearchIcon />}
+                    {/* Action Buttons */}
+                    <Box
                       sx={{
-                        backgroundColor: primaryColor,
-                        "&:hover": { backgroundColor: primaryColorHover },
-                        borderRadius: "6px",
-                        fontFamily: "Roboto, sans-serif",
-                        textTransform: "none",
-                        flex: 1,
+                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
-                      Cari {/* cspell:disable-line */}
-                    </Button>
-                    <Tooltip title="Reset Filter">
-                      <IconButton
-                        onClick={handleClearFilters}
-                        sx={{
-                          padding: "8px",
-                          background: lightButtonBackground,
-                          borderRadius: "6px",
-                          color: primaryColor,
-                          "&:hover": { background: theme.palette.grey[300] },
-                        }}
-                      >
-                        <ClearIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Reload Data">
-                      <IconButton
-                        onClick={() => refetch()}
-                        sx={{
-                          padding: "8px",
-                          background: lightButtonBackground,
-                          borderRadius: "6px",
-                          color: primaryColor,
-                          "&:hover": { background: theme.palette.grey[300] },
-                        }}
-                      >
-                        <RefreshIcon />
-                      </IconButton>
-                    </Tooltip>
+                      <Box sx={{ display: "flex", gap: 1, height: "100%" }}>
+                        <Button
+                          variant="contained"
+                          onClick={handleApplyFilters}
+                          startIcon={<SearchIcon />}
+                          sx={{
+                            backgroundColor: primaryColor,
+                            "&:hover": { backgroundColor: primaryColorHover },
+                            borderRadius: "6px",
+                            fontFamily: "Roboto, sans-serif",
+                            textTransform: "none",
+                            flex: 1,
+                          }}
+                        >
+                          Cari {/* cspell:disable-line */}
+                        </Button>
+                        <Tooltip title="Reset Filter"> 
+                          <IconButton
+                            onClick={handleClearFilters}
+                            sx={{
+                              padding: "8px",
+                              background: lightButtonBackground,
+                              borderRadius: "6px",
+                              color: primaryColor,
+                              "&:hover": { background: theme.palette.grey[300] },
+                            }}
+                          >
+                            <ClearIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Reload Data">
+                          <IconButton
+                            onClick={() => refetch()}
+                            sx={{
+                              padding: "8px",
+                              background: lightButtonBackground,
+                              borderRadius: "6px",
+                              color: primaryColor,
+                              "&:hover": { background: theme.palette.grey[300] },
+                            }}
+                          >
+                            <RefreshIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
                   </Box>
                 </Box>
-              </Box>
+              </Collapse>
             </Paper>
 
             {/* Data Table */}
