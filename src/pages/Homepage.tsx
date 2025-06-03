@@ -4,23 +4,23 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Badge,
   useTheme,
 } from "@mui/material";
 
 // Icons
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import ListAltIcon from "@mui/icons-material/ListAlt";
 import InventoryIcon from "@mui/icons-material/Inventory2Outlined";
 import HistoryIcon from "@mui/icons-material/History";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useNavigate } from "react-router-dom";
+
+// Import NotificationCenter component
+import NotificationCenter from "../components/NavigationCenter";
 
 interface NavItem {
   id: string;
@@ -31,26 +31,41 @@ interface NavItem {
 
 const HomePage: React.FC = () => {
   const theme = useTheme();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const navigationItems: NavItem[] = [
-    { id: "items", label: "Daftar Barang", icon: <ListAltIcon />, path: "/items" },
-    { id: "stocks", label: "Stok Barang", icon: <InventoryIcon />, path: "/stocks" },
+    {
+      id: "items",
+      label: "Daftar Barang",
+      icon: <ListAltIcon />,
+      path: "/items",
+    } /* cspell:disable-line */,
+    {
+      id: "stocks",
+      label: "Stok Barang",
+      icon: <InventoryIcon />,
+      path: "/stocks",
+    } /* cspell:disable-line */,
     {
       id: "riwayat-perubahan",
-      label: "Riwayat Perubahan",
+      label: "Riwayat Perubahan" /* cspell:disable-line */,
       icon: <HistoryIcon />,
-      path: "/stock-change-history"
+      path: "/stock-change-history",
     },
-    { id: "scan-barcode", label: "Scan Barcode", icon: <QrCodeScannerIcon />, path: "/scan" },
+    {
+      id: "scan-barcode",
+      label: "Scan Barcode",
+      icon: <QrCodeScannerIcon />,
+      path: "/scan",
+    },
   ];
 
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
 
   const handleNavigation = (path: string) => {
-    navigate(path)
-  }
+    navigate(path);
+  };
 
   return (
     <Box
@@ -74,11 +89,8 @@ const HomePage: React.FC = () => {
           >
             Rifa-SIMS
           </Typography>
-          <IconButton color="inherit" aria-label="notifications">
-            <Badge badgeContent={1} color="error">
-              <NotificationsIcon />
-            </Badge>
-          </IconButton>
+          {/* Replace the hardcoded notification icon with NotificationCenter */}
+          <NotificationCenter />
         </Toolbar>
       </AppBar>
 
@@ -102,7 +114,7 @@ const HomePage: React.FC = () => {
             textAlign: "center",
           }}
         >
-          Menu Utama
+          Menu Utama {/* cspell:disable-line */}
         </Typography>
 
         <List
