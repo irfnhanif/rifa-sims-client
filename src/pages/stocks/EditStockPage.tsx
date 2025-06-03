@@ -376,7 +376,8 @@ const EditStockPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Stok</Typography>
+            <Typography sx={labelStyles}>Stok</Typography>{" "}
+            {/* cspell:disable-line */}
             <Box
               sx={{
                 display: "flex",
@@ -389,8 +390,6 @@ const EditStockPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 name="currentStock"
-                type="text"
-                inputMode="numeric"
                 value={formData.currentStock}
                 onChange={(e) =>
                   handleNumericChange("currentStock", e.target.value)
@@ -405,6 +404,14 @@ const EditStockPage: React.FC = () => {
                     ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
                     minHeight: "48px",
                     pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                    type: "text",
+                    autoComplete: "off",
                   },
                 }}
               />
@@ -442,15 +449,14 @@ const EditStockPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Batas Minimal</Typography>
+            <Typography sx={labelStyles}>Batas Minimal</Typography>{" "}
+            {/* cspell:disable-line */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
                 fullWidth
                 variant="outlined"
                 size="small"
                 name="threshold"
-                type="text"
-                inputMode="numeric"
                 value={formData.threshold}
                 onChange={(e) =>
                   handleNumericChange("threshold", e.target.value)
@@ -465,6 +471,14 @@ const EditStockPage: React.FC = () => {
                     ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
                     minHeight: "48px",
                     pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                    type: "text",
+                    autoComplete: "off",
                   },
                 }}
               />

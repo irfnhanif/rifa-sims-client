@@ -405,8 +405,6 @@ const AddItemPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 name="currentStock"
-                type="text"
-                inputMode="numeric"
                 value={formData.currentStock}
                 onChange={(e) =>
                   handleNumericChange("currentStock", e.target.value)
@@ -421,6 +419,14 @@ const AddItemPage: React.FC = () => {
                     ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
                     minHeight: "48px",
                     pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                    type: "text",
+                    autoComplete: "off",
                   },
                 }}
               />
@@ -465,8 +471,6 @@ const AddItemPage: React.FC = () => {
                 variant="outlined"
                 size="small"
                 name="threshold"
-                type="text"
-                inputMode="numeric"
                 value={formData.threshold}
                 onChange={(e) =>
                   handleNumericChange("threshold", e.target.value)
@@ -481,6 +485,14 @@ const AddItemPage: React.FC = () => {
                     ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
                     minHeight: "48px",
                     pr: 0.5,
+                  },
+                }}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                    type: "text",
+                    autoComplete: "off",
                   },
                 }}
               />
