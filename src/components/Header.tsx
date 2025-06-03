@@ -1,5 +1,5 @@
 import React from "react";
-import { AppBar, Toolbar, Typography, IconButton, Box } from "@mui/material";
+import { AppBar, Toolbar, Typography, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import NotificationCenter from "./NavigationCenter";
 
@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({
         >
           {title}
         </Typography>
-        
+
         {/* Move NotificationCenter inside the Toolbar */}
         <NotificationCenter />
       </Toolbar>
