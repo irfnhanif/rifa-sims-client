@@ -34,7 +34,7 @@ import type {
 } from "../types/notification";
 
 const NotificationCenter: React.FC = () => {
-  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [anchorElement, setAnchorElement] = useState<HTMLButtonElement | null>(null);
   const queryClient = useQueryClient();
 
   const { data: notifications = [], isLoading } = useQuery({
@@ -58,14 +58,14 @@ const NotificationCenter: React.FC = () => {
   });
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  const open = Boolean(anchorEl);
+  const open = Boolean(anchorElement);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    setAnchorEl(event.currentTarget);
+    setAnchorElement(event.currentTarget);
   };
 
   const handleClose = () => {
-    setAnchorEl(null);
+    setAnchorElement(null);
   };
 
   const handleNotificationClick = (notification: SystemNotification) => {
@@ -81,7 +81,7 @@ const NotificationCenter: React.FC = () => {
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
       case "LOW_STOCK":
-        return <InventoryIcon color="warning" />;
+        return <InventoryIcon color="error" />;
       case "NEW_USER":
         return <PersonAddIcon color="info" />;
       case "SYSTEM_EVENT":
@@ -103,7 +103,7 @@ const NotificationCenter: React.FC = () => {
     | "warning" => {
     switch (type) {
       case "LOW_STOCK":
-        return "warning";
+        return "error";
       case "NEW_USER":
         return "info";
       case "SYSTEM_EVENT":
@@ -111,6 +111,63 @@ const NotificationCenter: React.FC = () => {
       default:
         return "default";
     }
+  };
+
+  const renderFormattedMessage = (message: string, type: NotificationType) => {
+    if (type === "LOW_STOCK") {
+      const lines = message.split("\n");
+      return (
+        <Box>
+          {lines.map((line, index) => {
+            const formattedLine = line.replace(
+              /(\d+)/g,
+              '<span style="color: #d32f2f; font-weight: 600;">$1</span>'
+            );
+
+            return (
+              <Typography
+                key={index}
+                variant="body2"
+                color="text.secondary"
+                component="div"
+                sx={{ mb: index === lines.length - 1 ? 0.5 : 0.25 }}
+                dangerouslySetInnerHTML={{ __html: formattedLine }}
+              />
+            );
+          })}
+        </Box>
+      );
+    } else if (type === "NEW_USER") {
+      const userPattern = /Pengguna\s+(\S+)/;
+      const match = message.match(userPattern);
+
+      if (match) {
+        const username = match[1];
+        const formattedMessage = message.replace(
+          username,
+          `<span style="color: #0288d1; font-weight: 600;">${username}</span>`
+        );
+
+        return (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 0.5, whiteSpace: "pre-line" }}
+            dangerouslySetInnerHTML={{ __html: formattedMessage }}
+          />
+        );
+      }
+    }
+
+    return (
+      <Typography
+        variant="body2"
+        color="text.secondary"
+        sx={{ mb: 0.5, whiteSpace: "pre-line" }}
+      >
+        {message}
+      </Typography>
+    );
   };
 
   const formatTimeAgo = (dateString: string): string => {
@@ -134,11 +191,7 @@ const NotificationCenter: React.FC = () => {
 
   return (
     <>
-      <IconButton
-        color="inherit"
-        onClick={handleClick}
-        sx={{ color: "white" }}
-      >
+      <IconButton color="inherit" onClick={handleClick} sx={{ color: "white" }}>
         <Badge badgeContent={unreadCount} color="error">
           <NotificationsIcon />
         </Badge>
@@ -146,7 +199,7 @@ const NotificationCenter: React.FC = () => {
 
       <Popover
         open={open}
-        anchorEl={anchorEl}
+        anchorEl={anchorElement}
         onClose={handleClose}
         anchorOrigin={{
           vertical: "bottom",
@@ -224,44 +277,54 @@ const NotificationCenter: React.FC = () => {
                         <Box
                           sx={{
                             display: "flex",
-                            alignItems: "center",
+                            alignItems: "flex-start", // Change from "center" to "flex-start"
                             gap: 1,
                             mb: 0.5,
                           }}
                         >
                           <Typography
                             variant="subtitle2"
-                            sx={{ fontWeight: 600 }}
+                            sx={{
+                              fontWeight: 600,
+                              flexGrow: 1,
+                              whiteSpace: "pre-line",
+                              lineHeight: 1.2, // Consistent line height
+                            }}
                           >
                             {notification.title}
                           </Typography>
-                          <Chip
-                            label={notification.type.replace("_", " ")}
-                            size="small"
-                            color={getNotificationColor(notification.type)}
-                            variant="outlined"
-                          />
-                          {!notification.read && (
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: "50%",
-                                bgcolor: "primary.main",
-                              }}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <Chip
+                              label={notification.type.replace("_", " ")}
+                              size="small"
+                              color={getNotificationColor(notification.type)}
+                              variant="outlined"
                             />
-                          )}
+                            {!notification.read && (
+                              <Box
+                                sx={{
+                                  width: 8,
+                                  height: 8,
+                                  borderRadius: "50%",
+                                  bgcolor: "primary.main",
+                                  flexShrink: 0, 
+                                  alignSelf: "flex-start", 
+                                  mt: 0.25, 
+                                }}
+                              />
+                            )}
+                          </Box>
                         </Box>
                       }
                       secondary={
                         <Box>
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ mb: 0.5 }}
-                          >
-                            {notification.message}
-                          </Typography>
+                          {renderFormattedMessage(notification.message, notification.type)}
                           <Typography variant="caption" color="text.disabled">
                             {formatTimeAgo(notification.createdAt)}
                           </Typography>
