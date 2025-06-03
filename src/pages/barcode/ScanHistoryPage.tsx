@@ -56,6 +56,7 @@ const ScanHistoryPage: React.FC = () => {
     mutationFn: deleteStockAuditLog,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
+      queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
     },
     onError: (error: Error) => {
       console.error("Error deleting audit log:", error);

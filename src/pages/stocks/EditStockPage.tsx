@@ -95,8 +95,11 @@ const EditStockPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["itemStock", id] });
       queryClient.invalidateQueries({ queryKey: ["itemStocks"] });
-
-      setErrors({ form: "Stok barang berhasil diperbarui!" });
+      queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+      
+      setErrors({
+        form: "Stok barang berhasil diperbarui!",
+      }); /* cspell:disable-line */
       setTimeout(() => {
         navigate(-1);
       }, 1500);

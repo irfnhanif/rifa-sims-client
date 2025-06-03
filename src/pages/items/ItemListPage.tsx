@@ -19,7 +19,7 @@ import {
   IconButton,
   Snackbar,
 } from "@mui/material";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
 import SearchIcon from "@mui/icons-material/Search";
@@ -38,6 +38,7 @@ import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDIalog";
 const ItemListPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const queryClient = useQueryClient()
 
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
@@ -77,6 +78,8 @@ const ItemListPage: React.FC = () => {
       refetch();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
+
+      queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
     },
     onError: (error: Error) => {
       setSnackbar({

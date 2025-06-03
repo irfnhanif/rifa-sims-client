@@ -64,6 +64,7 @@ const AddItemPage: React.FC = () => {
     mutationFn: createItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
+      queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
 
       setErrors({ form: "Barang berhasil ditambahkan!" });
       setFormData({
