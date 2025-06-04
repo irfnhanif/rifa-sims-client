@@ -35,6 +35,35 @@ export const fetchItemStocks = async (
   return result.data || [];
 };
 
+export const fetchItemStocksCurrentStockLessThanThreshold = async (
+  page: number,
+  size: number,
+  name?: string
+): Promise<ItemStock[]> => {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    size: size.toString(),
+  });
+
+  if (name && name.trim()) {
+    params.append("name", name.trim().toLowerCase());
+  }
+
+  const response = await apiClient.get("/item-stocks/near-empty", params);
+
+  const result: ApiResponse<ItemStock[]> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  if (!result.success) {
+    throw new Error(result.message || "Failed to fetch items");
+  }
+
+  return result.data || [];
+};
+
 export const fetchItemStockById = async (id: string): Promise<ItemStock> => {
   const response = await apiClient.get(`/item-stocks/${id}`);
 
