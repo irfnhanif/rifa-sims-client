@@ -31,11 +31,14 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
-import type { ItemStock } from "../../types/item-stock";
-import { fetchItemStocks } from "../../api/stocks";
+import type { ItemStock } from "../types/item-stock";
+import {
+  fetchItemStocks,
+  fetchItemStocksCurrentStockLessThanThreshold,
+} from "../api/stocks";
 
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
+import Header from "./Header";
+import Footer from "./Footer";
 
 type StockFilter = "low" | "normal" | "empty";
 
@@ -44,7 +47,17 @@ interface FilterOption {
   label: string;
 }
 
-const StockListPage: React.FC = () => {
+interface StockListPageProps {
+  mode?: "all" | "near-empty";
+  title?: string;
+  showBackButton?: boolean;
+}
+
+const StockListPageTemplate: React.FC<StockListPageProps> = ({
+  mode = "all",
+  title,
+  showBackButton = true,
+}) => {
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -67,15 +80,31 @@ const StockListPage: React.FC = () => {
     { value: "normal", label: "Stok Normal" },
   ];
 
+  const fetchStocksFunction =
+    mode === "near-empty"
+      ? fetchItemStocksCurrentStockLessThanThreshold
+      : fetchItemStocks;
+
   const {
     data: itemStocks = [],
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["itemStocks", page, rowsPerPage, serverSearchQuery],
-    queryFn: () => fetchItemStocks(page, rowsPerPage, serverSearchQuery),
+    queryKey: ["itemStocks", mode, page, rowsPerPage, serverSearchQuery],
+    queryFn: () => fetchStocksFunction(page, rowsPerPage, serverSearchQuery),
   });
+
+  const pageTitle =
+    title ||
+    (mode === "near-empty"
+      ? "Daftar Stok Barang Menipis"
+      : "Daftar Stok Barang");
+
+  const availableFilters =
+    mode === "near-empty"
+      ? filterOptions.filter((f) => f.value !== "normal") // Only show 'empty' and 'low'
+      : filterOptions;
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
@@ -229,8 +258,9 @@ const StockListPage: React.FC = () => {
       }}
     >
       <Header
-        title="Daftar Stok Barang"
-        onBackClick={handleBackClick}
+        title={pageTitle}
+        onBackClick={showBackButton ? handleBackClick : undefined}
+        showBackButton={showBackButton}
         backgroundColor={primaryColor}
       />
 
@@ -358,7 +388,7 @@ const StockListPage: React.FC = () => {
                     Filter Stok
                   </Typography>
                 </Box>
-                {filterOptions.map((option) => (
+                {availableFilters.map((option) => (
                   <MenuItem
                     key={option.value}
                     onClick={() => handleFilterToggle(option.value)}
@@ -605,4 +635,4 @@ const StockListPage: React.FC = () => {
   );
 };
 
-export default StockListPage;
+export default StockListPageTemplate;
