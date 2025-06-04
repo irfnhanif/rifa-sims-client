@@ -6,7 +6,6 @@ import HomePage from "./pages/Homepage";
 import ItemListPage from "./pages/items/ItemListPage";
 import AddItemPage from "./pages/items/AddItemPage";
 import EditItemPage from "./pages/items/EditItemPage";
-import StockListPage from "./pages/stocks/StockListPage";
 import EditStockPage from "./pages/stocks/EditStockPage";
 import ItemDetailPage from "./pages/stocks/ItemDetailPage";
 import ScanBarcodePage from "./pages/barcode/ScanBarcodePage";
@@ -14,6 +13,8 @@ import InputDataPage from "./pages/barcode/InputDataPage";
 import ChooseItemPage from "./pages/barcode/ChooseItemPage";
 import ScanHistoryPage from "./pages/barcode/ScanHistoryPage";
 import StockChangeHistoryPage from "./pages/audit-logs/StockChangeHistoryPage";
+import AllStocksPage from "./pages/stocks/AllStocksPage";
+import NearEmptyStocksPage from "./pages/stocks/NearEmptyStocksPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,17 +40,21 @@ function App() {
             <Route path=":id/edit" element={<EditItemPage />} />
           </Route>
           <Route path="/stocks">
-            <Route index element={<StockListPage />}/>
+            <Route index element={<AllStocksPage />} />
             <Route path=":id/edit" element={<EditStockPage />} />
             <Route path=":id/detail" element={<ItemDetailPage />} />
           </Route>
+          <Route path="/near-empty-stocks" element={<NearEmptyStocksPage />} />
           <Route path="/scan">
             <Route index element={<ScanBarcodePage />} />
             <Route path="choose-item" element={<ChooseItemPage />} />
             <Route path=":id/input" element={<InputDataPage />} />
             <Route path="history" element={<ScanHistoryPage />} />
           </Route>
-          <Route path="/stock-change-history" element={<StockChangeHistoryPage />} />
+          <Route
+            path="/stock-change-history"
+            element={<StockChangeHistoryPage />}
+          />
         </Routes>
       </Router>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
