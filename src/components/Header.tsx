@@ -37,8 +37,6 @@ const Header: React.FC<HeaderProps> = ({
         >
           {title}
         </Typography>
-
-        {/* Move NotificationCenter inside the Toolbar */}
         <NotificationCenter />
       </Toolbar>
     </AppBar>
