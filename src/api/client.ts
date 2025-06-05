@@ -1,52 +1,65 @@
-import API_CONFIG from "../config/api";
+import apiConfig from "../config/api";
 
-export const apiClient = {
-  get: async (url: string, params?: URLSearchParams) => {
-    let fullUrl = `${API_CONFIG.BASE_URL}${url}`;
+class ApiClient {
+  private baseUrl: string;
 
-    if (params && params.toString()) {
-      fullUrl += `?${params.toString()}`;
+  constructor() {
+    this.baseUrl = apiConfig.getBaseUrl();
+  }
+
+  private async request(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<Response> {
+    const url = `${this.baseUrl}${endpoint}`;
+
+    const config: RequestInit = {
+      ...options,
+      headers: {
+        ...apiConfig.getHeaders(),
+        ...options.headers,
+      },
+    };
+
+    const response = await fetch(url, config);
+
+    if (response.status === 401) {
+      apiConfig.clearToken();
+      window.location.href = "/login";
     }
 
-    const response = await fetch(fullUrl, {
-      method: "GET",
-      headers: API_CONFIG.DEFAULT_HEADERS,
-    });
     return response;
-  },
+  }
 
-  post: async (url: string, data: unknown) => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+  async get(endpoint: string, params?: URLSearchParams): Promise<Response> {
+    const url = params ? `${endpoint}?${params.toString()}` : endpoint;
+    return this.request(url, { method: "GET" });
+  }
+
+  async post(endpoint: string, data?: any): Promise<Response> {
+    return this.request(endpoint, {
       method: "POST",
-      headers: API_CONFIG.DEFAULT_HEADERS,
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
-    return response;
-  },
+  }
 
-  put: async (url: string, data: unknown) => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+  async put(endpoint: string, data?: any): Promise<Response> {
+    return this.request(endpoint, {
       method: "PUT",
-      headers: API_CONFIG.DEFAULT_HEADERS,
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
-    return response;
-  },
+  }
 
-  patch: async (url: string, data: unknown) => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
+  async patch(endpoint: string, data?: any): Promise<Response> {
+    return this.request(endpoint, {
       method: "PATCH",
-      headers: API_CONFIG.DEFAULT_HEADERS,
-      body: JSON.stringify(data),
+      body: data ? JSON.stringify(data) : undefined,
     });
-    return response;
-  },
+  }
 
-  delete: async (url: string) => {
-    const response = await fetch(`${API_CONFIG.BASE_URL}${url}`, {
-      method: "DELETE",
-      headers: API_CONFIG.DEFAULT_HEADERS,
-    });
-    return response;
-  },
-};
+  async delete(endpoint: string): Promise<Response> {
+    return this.request(endpoint, { method: "DELETE" });
+  }
+}
+
+export const apiClient = new ApiClient();

@@ -11,6 +11,12 @@ export interface User {
     addedToNotification: boolean
 }
 
+export interface UserInfo {
+  username: string;
+  role: UserRole;
+  isExpired: boolean;
+}
+
 export interface RegisterRequest {
   username: string;
   password: string;
