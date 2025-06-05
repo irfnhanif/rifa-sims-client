@@ -4,10 +4,10 @@ import type { UserRole } from "../types/user-role";
 
 interface JWTPayload {
   sub: string;
-  role: UserRole;
+  roles: UserRole;
   iat?: number;
   exp?: number;
-  [key: string]: any; 
+  [key: string]: any;
 }
 
 export const decodeJWT = (token: string): JWTPayload | null => {
@@ -39,8 +39,6 @@ export const isTokenExpired = (payload: JWTPayload): boolean => {
   return payload.exp < currentTime;
 };
 
-
-
 export const isAuthenticated = (): boolean => {
   const token = apiConfig.getToken();
   if (!token) return false;
@@ -60,7 +58,7 @@ export const getCurrentUser = (): UserInfo | null => {
 
   return {
     username: payload.sub,
-    role: payload.role,
+    roles: payload.roles,
     isExpired: isTokenExpired(payload),
   };
 };

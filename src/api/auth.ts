@@ -5,7 +5,7 @@ import apiConfig from "../config/api";
 import { decodeJWT, isTokenExpired } from "../helper/jwt";
 
 export const login = async (data: Partial<LoginRequest>): Promise<UserInfo> => {
-  const response = await apiClient.post("/login", data);
+  const response = await apiClient.post("/auth/login", data);
 
   const result: ApiResponse<string> = await response.json();
 
@@ -24,7 +24,8 @@ export const login = async (data: Partial<LoginRequest>): Promise<UserInfo> => {
     throw new Error("Invalid JWT token received");
   }
 
-  if (!payload.sub || !payload.role) {
+  if (!payload.sub || !payload.roles) {
+    console.log(payload);
     throw new Error("JWT token missing required user information");
   }
 
@@ -37,14 +38,14 @@ export const login = async (data: Partial<LoginRequest>): Promise<UserInfo> => {
 
   return {
     username: payload.sub,
-    role: payload.role,
+    roles: payload.roles,
     isExpired: false,
   };
 };
 
 export const logout = async (): Promise<void> => {
   try {
-    await apiClient.post("/logout");
+    await apiClient.post("/auth/logout");
   } catch (error) {
     console.warn("Logout request failed:", error);
   } finally {
@@ -53,7 +54,7 @@ export const logout = async (): Promise<void> => {
 };
 
 export const refreshToken = async (): Promise<UserInfo> => {
-  const response = await apiClient.post("/refresh-token");
+  const response = await apiClient.post("/auth/refresh-token");
 
   const result: ApiResponse<string> = await response.json();
 
@@ -76,7 +77,7 @@ export const refreshToken = async (): Promise<UserInfo> => {
 
   return {
     username: payload.sub,
-    role: payload.role,
+    roles: payload.roles,
     isExpired: isTokenExpired(payload),
   };
 };

@@ -1,19 +1,19 @@
-import type { UserRole } from "./user-role"
-import type { UserType } from "./user-type"
+import type { UserRole } from "./user-role";
+import type { UserType } from "./user-type";
 
 export interface User {
-    id: string
-    username: string
-    password: string
-    branch: number
-    role: UserRole
-    status: UserType
-    addedToNotification: boolean
+  id: string;
+  username: string;
+  password: string;
+  branch: number;
+  role: UserRole;
+  status: UserType;
+  addedToNotification: boolean;
 }
 
 export interface UserInfo {
   username: string;
-  role: UserRole;
+  roles: UserRole;
   isExpired: boolean;
 }
 
