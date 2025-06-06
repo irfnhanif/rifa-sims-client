@@ -352,28 +352,38 @@ const LoginPage: React.FC = () => {
             </Button>
 
             <Box sx={{ textAlign: "center" }}>
-              <MuiLink
-                component="button"
+              <Typography
                 variant="body2"
-                onClick={() => {
-                  console.log("Navigate to Create Account page");
-                  // navigate('/register');
-                }}
                 sx={{
                   fontSize: "14px",
                   fontFamily: robotoFontFamily,
                   fontWeight: "700",
-                  color: primaryDarkColor,
                   lineHeight: "24px",
-                  textTransform: "none",
-                  textDecoration: "underline",
-                  "&:hover": {
-                    textDecoration: "underline",
-                  },
                 }}
               >
-                Belum Punya Akun? Buat Akun {/* cspell:disable-line */}
-              </MuiLink>
+                Belum Punya Akun? {/* cspell:disable-line */}
+                <MuiLink
+                  component="button"
+                  variant="body2"
+                  onClick={() => {
+                    navigate("/auth/register");
+                  }}
+                  sx={{
+                    fontSize: "14px",
+                    fontFamily: robotoFontFamily,
+                    fontWeight: "700",
+                    color: primaryDarkColor,
+                    lineHeight: "24px",
+                    textTransform: "none",
+                    textDecoration: "underline",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  Buat Akun {/* cspell:disable-line */}
+                </MuiLink>
+              </Typography>
             </Box>
           </Box>
         </Paper>
