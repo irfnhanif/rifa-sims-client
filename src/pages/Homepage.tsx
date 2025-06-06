@@ -24,9 +24,10 @@ import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PersonIcon from "@mui/icons-material/Person";
-import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import CloseIcon from "@mui/icons-material/Close";
+import WarningIcon from "@mui/icons-material/Warning";
+import PeopleIcon from "@mui/icons-material/People";
 
 import { useNavigate } from "react-router-dom";
 
@@ -114,13 +115,23 @@ const HomePage: React.FC = () => {
       },
     },
     {
-      id: "settings",
-      label: "Pengaturan" /* cspell:disable-line */,
-      icon: <SettingsIcon />,
+      id: "near-empty-stocks",
+      label: "Daftar Stok Barang Habis" /* cspell:disable-line */,
+      icon: <WarningIcon />,
       action: () => {
         setIsProfileDrawerOpen(false);
-        // Navigate to settings page when implemented
-        console.log("Navigate to settings");
+        navigate("/near-empty-stocks");
+      },
+    },
+    {
+      id: "users",
+      label: "Daftar Pengguna" /* cspell:disable-line */,
+      icon: <PeopleIcon />,
+      action: () => {
+        setIsProfileDrawerOpen(false);
+        // Navigate to users page when implemented
+        console.log("Navigate to users list");
+        // navigate("/users");
       },
     },
     {
@@ -211,7 +222,7 @@ const HomePage: React.FC = () => {
             }}
           >
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Profil Pengguna {/* cspell:disable-line */}
+              Khusus Pengguna {/* cspell:disable-line */}
             </Typography>
             <IconButton
               onClick={handleProfileDrawerToggle}
@@ -259,6 +270,7 @@ const HomePage: React.FC = () => {
 
           <Divider sx={{ mb: 1 }} />
 
+          {/* Menu Items */}
           <List sx={{ p: 0 }}>
             {profileMenuItems.map((item) => (
               <ListItem key={item.id} disablePadding>
