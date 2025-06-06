@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   AppBar,
@@ -9,6 +9,11 @@ import {
   ListItemIcon,
   ListItemText,
   useTheme,
+  IconButton,
+  Avatar,
+  Drawer,
+  Divider,
+  ListItem,
 } from "@mui/material";
 
 // Icons
@@ -17,10 +22,17 @@ import InventoryIcon from "@mui/icons-material/Inventory2Outlined";
 import HistoryIcon from "@mui/icons-material/History";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
+import LogoutIcon from "@mui/icons-material/Logout";
+import CloseIcon from "@mui/icons-material/Close";
+
 import { useNavigate } from "react-router-dom";
 
-// Import NotificationCenter component
+// Import NotificationCenter component and auth
 import NotificationCenter from "../components/NavigationCenter";
+import { useAuth } from "../helper/use-auth";
 
 interface NavItem {
   id: string;
@@ -29,25 +41,35 @@ interface NavItem {
   path: string;
 }
 
+interface ProfileMenuItem {
+  id: string;
+  label: string;
+  icon: React.ReactElement;
+  action: () => void;
+  color?: string;
+}
+
 const HomePage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
 
   const navigationItems: NavItem[] = [
     {
       id: "items",
-      label: "Daftar Barang",
+      label: "Daftar Barang" /* cspell:disable-line */,
       icon: <ListAltIcon />,
       path: "/items",
-    } /* cspell:disable-line */,
+    },
     {
       id: "stocks",
-      label: "Stok Barang",
+      label: "Stok Barang" /* cspell:disable-line */,
       icon: <InventoryIcon />,
       path: "/stocks",
-    } /* cspell:disable-line */,
+    },
     {
-      id: "riwayat-perubahan",
+      id: "riwayat-perubahan" /* cspell:disable-line */,
       label: "Riwayat Perubahan" /* cspell:disable-line */,
       icon: <HistoryIcon />,
       path: "/stock-change-history",
@@ -67,6 +89,49 @@ const HomePage: React.FC = () => {
     navigate(path);
   };
 
+  const handleProfileDrawerToggle = () => {
+    setIsProfileDrawerOpen(!isProfileDrawerOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/auth/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
+  const profileMenuItems: ProfileMenuItem[] = [
+    {
+      id: "profile",
+      label: "Profil Saya" /* cspell:disable-line */,
+      icon: <PersonIcon />,
+      action: () => {
+        setIsProfileDrawerOpen(false);
+        // Navigate to profile page when implemented
+        console.log("Navigate to profile");
+      },
+    },
+    {
+      id: "settings",
+      label: "Pengaturan" /* cspell:disable-line */,
+      icon: <SettingsIcon />,
+      action: () => {
+        setIsProfileDrawerOpen(false);
+        // Navigate to settings page when implemented
+        console.log("Navigate to settings");
+      },
+    },
+    {
+      id: "logout",
+      label: "Keluar" /* cspell:disable-line */,
+      icon: <LogoutIcon />,
+      action: handleLogout,
+      color: "#d32f2f", // Error red color
+    },
+  ];
+
   return (
     <Box
       sx={{
@@ -82,17 +147,154 @@ const HomePage: React.FC = () => {
     >
       <AppBar position="static" sx={{ backgroundColor: primaryColor }}>
         <Toolbar>
+          <IconButton
+            color="inherit"
+            onClick={handleProfileDrawerToggle}
+            sx={{
+              mr: 0,
+              color: "white",
+              "&:hover": {
+                backgroundColor: "rgba(255, 255, 255, 0.1)",
+              },
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                fontSize: "0.875rem",
+              }}
+            >
+              {user?.username ? (
+                user.username.charAt(0).toUpperCase()
+              ) : (
+                <AccountCircleIcon />
+              )}
+            </Avatar>
+          </IconButton>
           <Typography
             variant="h6"
             component="div"
             sx={{ flexGrow: 1, fontWeight: "bold" }}
           >
-            Rifa-SIMS
+            Rifa-SIMS {/* cspell:disable-line */}
           </Typography>
-          {/* Replace the hardcoded notification icon with NotificationCenter */}
+
           <NotificationCenter />
         </Toolbar>
       </AppBar>
+
+      <Drawer
+        anchor="top"
+        open={isProfileDrawerOpen}
+        onClose={handleProfileDrawerToggle}
+        slotProps={{
+          paper: {
+            sx: {
+              width: "100%",
+              margin: "0 auto",
+              borderRadius: "0 0 12px 12px",
+              boxShadow: theme.shadows[8],
+            },
+          },
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          {/* Header */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Profil Pengguna {/* cspell:disable-line */}
+            </Typography>
+            <IconButton
+              onClick={handleProfileDrawerToggle}
+              size="small"
+              sx={{ color: "text.secondary" }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+
+          {/* User Info */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              p: 2,
+              backgroundColor: theme.palette.grey[50],
+              borderRadius: 2,
+              mb: 2,
+            }}
+          >
+            <Avatar
+              sx={{
+                width: 48,
+                height: 48,
+                backgroundColor: primaryColor,
+                mr: 2,
+              }}
+            >
+              {user?.username ? (
+                user.username.charAt(0).toUpperCase()
+              ) : (
+                <AccountCircleIcon />
+              )}
+            </Avatar>
+            <Box>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                {user?.username || "User"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {user?.roles || "No roles"}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Divider sx={{ mb: 1 }} />
+
+          <List sx={{ p: 0 }}>
+            {profileMenuItems.map((item) => (
+              <ListItem key={item.id} disablePadding>
+                <ListItemButton
+                  onClick={item.action}
+                  sx={{
+                    borderRadius: 1,
+                    mb: 0.5,
+                    "&:hover": {
+                      backgroundColor: "action.hover",
+                    },
+                  }}
+                >
+                  <ListItemIcon
+                    sx={{
+                      color: item.color || "text.primary",
+                      minWidth: 40,
+                    }}
+                  >
+                    {item.icon}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={item.label}
+                    sx={{
+                      "& .MuiTypography-root": {
+                        color: item.color || "text.primary",
+                        fontWeight: item.id === "logout" ? 600 : 400,
+                      },
+                    }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      </Drawer>
 
       <Box
         component="main"
@@ -189,7 +391,8 @@ const HomePage: React.FC = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          &copy; {new Date().getFullYear()} Rifa-SIMS. All rights reserved.
+          &copy; {new Date().getFullYear()} Rifa-SIMS.{" "}
+          {/* cspell:disable-line */} All rights reserved.
         </Typography>
       </Box>
     </Box>
