@@ -18,6 +18,7 @@ import NearEmptyStocksPage from "./pages/stocks/NearEmptyStocksPage";
 import LoginPage from "./pages/auth/LoginPage";
 import { AuthProvider } from "./helper/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RegisterPage from "./pages/auth/RegisterPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,35 +38,31 @@ const App = () => {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/auth/login" element={<LoginPage />} />
+            <Route path="/auth">
+              <Route path="login" element={<LoginPage />} />
+              <Route path="register" element={<RegisterPage />} />
+            </Route>
 
-            {/* Protected Routes */}
             <Route path="/" element={<ProtectedRoute />}>
-              {/* Homepage */}
               <Route index element={<HomePage />} />
 
-              {/* Items Routes */}
               <Route path="items">
                 <Route index element={<ItemListPage />} />
                 <Route path="add" element={<AddItemPage />} />
                 <Route path=":id/edit" element={<EditItemPage />} />
               </Route>
 
-              {/* Stocks Routes */}
               <Route path="stocks">
                 <Route index element={<AllStocksPage />} />
                 <Route path=":id/edit" element={<EditStockPage />} />
                 <Route path=":id/detail" element={<ItemDetailPage />} />
               </Route>
 
-              {/* Other Protected Routes */}
               <Route
                 path="near-empty-stocks"
                 element={<NearEmptyStocksPage />}
               />
 
-              {/* Scan Routes */}
               <Route path="scan">
                 <Route index element={<ScanBarcodePage />} />
                 <Route path="choose-item" element={<ChooseItemPage />} />

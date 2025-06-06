@@ -1,8 +1,24 @@
 import type { ApiResponse } from "../types/api";
-import type { LoginRequest, UserInfo } from "../types/user";
+import type { LoginRequest, RegisterRequest, UserInfo } from "../types/user";
 import { apiClient } from "./client";
 import apiConfig from "../config/api";
 import { decodeJWT, isTokenExpired } from "../helper/jwt";
+
+export const register = async (data: Partial<RegisterRequest>): Promise<string[]> => {
+  const response = await apiClient.post("/auth/register", data)
+
+  const result: ApiResponse<string> = await response.json()
+
+  if (!response.ok) {
+    throw new Error(result.message || "Login failed");
+  }
+
+  if (!result.data) {
+    throw new Error("No confirmation message sent by server");
+  }
+  
+  return [result.data, result.message];
+}
 
 export const login = async (data: Partial<LoginRequest>): Promise<UserInfo> => {
   const response = await apiClient.post("/auth/login", data);
