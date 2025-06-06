@@ -44,13 +44,7 @@ export const login = async (data: Partial<LoginRequest>): Promise<UserInfo> => {
 };
 
 export const logout = async (): Promise<void> => {
-  try {
-    await apiClient.post("/auth/logout");
-  } catch (error) {
-    console.warn("Logout request failed:", error);
-  } finally {
-    apiConfig.clearToken();
-  }
+  apiConfig.clearToken();
 };
 
 export const refreshToken = async (): Promise<UserInfo> => {

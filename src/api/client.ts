@@ -25,7 +25,7 @@ class ApiClient {
 
     if (response.status === 401) {
       apiConfig.clearToken();
-      window.location.href = "/login";
+      window.location.href = "/auth/login";
     }
 
     return response;
