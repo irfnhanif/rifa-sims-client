@@ -17,6 +17,11 @@ export interface UserInfo {
   isExpired: boolean;
 }
 
+export interface EditUserRequest {
+  username: string
+  branch: number
+}
+
 export interface RegisterRequest {
   username: string;
   password: string;
@@ -26,4 +31,9 @@ export interface RegisterRequest {
 export interface LoginRequest {
   username: string;
   password: string;
+}
+
+export interface UserWithTokenResponse {
+  user: User
+  token: string
 }

@@ -47,16 +47,13 @@ const ProfilePage: React.FC = () => {
       if (!authUser?.username) {
         throw new Error("No authenticated user found");
       }
-      // Assuming the API endpoint uses username as ID or you have the user ID
       return fetchUserByUsername(authUser.username);
     },
     enabled: !!authUser?.username,
   });
 
   const handleEditProfile = () => {
-    // Navigate to the edit profile page
-    console.log("Navigate to Edit Profile Page");
-    // navigate(`/profile/edit`);
+    navigate("/users/profile/edit", { state: { user: user } });
   };
 
   const handleBackClick = () => {

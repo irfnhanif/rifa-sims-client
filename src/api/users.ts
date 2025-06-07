@@ -1,5 +1,5 @@
 import type { ApiResponse } from "../types/api";
-import type { User } from "../types/user";
+import type { EditUserRequest, User, UserWithTokenResponse } from "../types/user";
 import { apiClient } from "./client";
 
 export const fetchUsers = async (
@@ -49,11 +49,11 @@ export const fetchUserByUsername = async (username: string): Promise<User> => {
 
 export const updateUser = async (
   id: string,
-  data: Partial<User>
-): Promise<User> => {
+  data: Partial<EditUserRequest>
+): Promise<UserWithTokenResponse> => {
   const response = await apiClient.put(`/users/${id}`, data);
 
-  const result: ApiResponse<User> = await response.json();
+  const result: ApiResponse<UserWithTokenResponse> = await response.json();
 
   if (!response.ok || !result.success) {
     const error = new Error(result.message || "Failed to update item");
