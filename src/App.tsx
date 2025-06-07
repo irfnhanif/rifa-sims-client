@@ -19,6 +19,7 @@ import LoginPage from "./pages/auth/LoginPage";
 import { AuthProvider } from "./helper/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
+import ProfilePage from "./pages/users/ProfilePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +75,10 @@ const App = () => {
                 path="stock-change-history"
                 element={<StockChangeHistoryPage />}
               />
+
+              <Route path="/users">
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
             </Route>
           </Routes>
         </Router>

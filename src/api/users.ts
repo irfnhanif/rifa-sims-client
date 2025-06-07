@@ -31,26 +31,29 @@ export const fetchUsers = async (
   return result.data || [];
 };
 
-export const fetchUserById = async (id: string): Promise<User> => {
-  const response = await apiClient.get(`/users/${id}`);
+export const fetchUserByUsername = async (username: string): Promise<User> => {
+  const response = await apiClient.get(`/users/username/${username}`);
 
-  const result: ApiResponse<User> = await response.json()
+  const result: ApiResponse<User> = await response.json();
 
   if (!response.ok) {
-    throw new Error(result.message)
+    throw new Error(result.message);
   }
 
   if (!result.data) {
-    throw new Error("No user data returned")
+    throw new Error("No user data returned");
   }
 
   return result.data;
-}
+};
 
-export const updateUser = async (id: string, data: Partial<User>): Promise<User> => {
-  const response = await apiClient.put(`/users/${id}`, data)
+export const updateUser = async (
+  id: string,
+  data: Partial<User>
+): Promise<User> => {
+  const response = await apiClient.put(`/users/${id}`, data);
 
-  const result: ApiResponse<User> = await response.json()
+  const result: ApiResponse<User> = await response.json();
 
   if (!response.ok || !result.success) {
     const error = new Error(result.message || "Failed to update item");
@@ -64,7 +67,7 @@ export const updateUser = async (id: string, data: Partial<User>): Promise<User>
   }
 
   return result.data;
-}
+};
 
 export const acceptUser = async (id: string): Promise<string> => {
   const response = await apiClient.patch(`/users/${id}/accept`);
@@ -109,4 +112,3 @@ export const deleteUser = async (id: string) => {
 
   return result.message;
 };
-

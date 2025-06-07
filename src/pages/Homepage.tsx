@@ -110,8 +110,7 @@ const HomePage: React.FC = () => {
       icon: <PersonIcon />,
       action: () => {
         setIsProfileDrawerOpen(false);
-        // Navigate to profile page when implemented
-        console.log("Navigate to profile");
+        navigate("/users/profile")
       },
     },
     {
