@@ -82,6 +82,7 @@ const EditItemPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["item", id] });
+      queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
 
       setErrors({ form: "Barang berhasil diperbarui!" });
 

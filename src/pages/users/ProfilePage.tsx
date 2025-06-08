@@ -57,7 +57,7 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    navigate("/");
   };
 
   const getBranchName = (branchNumber: number): string => {

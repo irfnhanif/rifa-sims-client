@@ -12,6 +12,7 @@ import {
   refreshToken,
 } from "../api/auth";
 import { getCurrentUser, isAuthenticated, isTokenExpiringSoon } from "./jwt";
+import apiConfig from "../config/api";
 
 interface AuthContextType {
   user: UserInfo | null;
@@ -20,6 +21,7 @@ interface AuthContextType {
   login: (credentials: Partial<LoginRequest>) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  setToken: (token: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +56,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await logout();
     }
   }, [logout]);
+
+  const setToken = useCallback((token: string) => {
+    try {
+      apiConfig.setToken(token);
+      const newUser = getCurrentUser();
+      setUser(newUser);
+    } catch (error) {
+      console.error("Failed to set token:", error);
+      setUser(null);
+    }
+  }, []);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -104,6 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     refreshToken: handleRefreshToken,
+    setToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

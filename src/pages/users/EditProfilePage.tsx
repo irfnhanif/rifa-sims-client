@@ -26,11 +26,11 @@ import type {
   EditUserRequest,
   UserWithTokenResponse,
 } from "../../types/user";
+
 import { updateUser } from "../../api/users";
 
 // Icons
 import SaveIcon from "@mui/icons-material/Save";
-import apiConfig from "../../config/api";
 
 interface FormErrors {
   username?: string;
@@ -48,7 +48,7 @@ const EditProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { logout } = useAuth();
+  const { logout, setToken } = useAuth();
 
   const user = location.state?.user as User;
 
@@ -83,14 +83,20 @@ const EditProfilePage: React.FC = () => {
       return updateUser(user.id, userData);
     },
     onSuccess: async (response: UserWithTokenResponse) => {
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-
       const usernameChanged = formData.username !== user.username;
 
       if (usernameChanged) {
         try {
-          // Update the token with the new one from the response
-          apiConfig.setToken(response.token);
+          setToken(response.token);
+          queryClient.invalidateQueries({
+            queryKey: ["userProfile", user.username],
+          });
+          queryClient.setQueryData(
+            ["userProfile", response.user.username],
+            response.user
+          );
+          queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+
           setErrors({
             form: "Profil berhasil diperbarui!" /* cspell:disable-line */,
           });
@@ -105,10 +111,14 @@ const EditProfilePage: React.FC = () => {
           return;
         }
       } else {
+        queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+        queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+
         setErrors({
           form: "Profil berhasil diperbarui!" /* cspell:disable-line */,
         });
       }
+
       setTimeout(() => navigate("/users/profile"), 1500);
     },
     onError: (error: ApiError) => {
