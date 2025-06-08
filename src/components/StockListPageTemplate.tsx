@@ -39,6 +39,8 @@ import {
 
 import Header from "./Header";
 import Footer from "./Footer";
+import { UserRole } from "../types/user-role";
+import { useAuth } from "../helper/use-auth";
 
 type StockFilter = "low" | "normal" | "empty";
 
@@ -60,6 +62,8 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
 
   const primaryColor = "#2D3648";
   const lightButtonBackground = "#EDF0F7";
@@ -564,7 +568,7 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
                               <BarChartIcon sx={{ fontSize: "16px" }} />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Edit Stok">
+                          {isOwner && (<Tooltip title="Edit Stok">
                             <IconButton
                               size="small"
                               onClick={() => handleEditClick(stock.id)}
@@ -580,7 +584,7 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
                             >
                               <EditIcon sx={{ fontSize: "16px" }} />
                             </IconButton>
-                          </Tooltip>
+                          </Tooltip>)}
                         </Box>
                       </TableCell>
                     </TableRow>
