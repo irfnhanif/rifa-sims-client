@@ -10,6 +10,12 @@ import {
   IconButton,
   Pagination,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  DialogContentText,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +35,132 @@ import type {
 // Icons
 import DeleteIcon from "@mui/icons-material/Delete";
 
+interface ConfirmDeleteDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  itemName?: string;
+}
+
+const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
+  open,
+  onClose,
+  onConfirm,
+  itemName,
+}) => {
+  const theme = useTheme();
+  const primaryDarkColor = "#2D3648";
+  const lightButtonBackground = "#EDF0F7";
+
+  const contentText = itemName
+    ? `Apakah Anda yakin ingin menghapus riwayat "${itemName}"? Tindakan ini tidak dapat diurungkan.` /* cspell:disable-line */
+    : "Apakah Anda yakin ingin menghapus riwayat ini? Tindakan ini tidak dapat diurungkan."; /* cspell:disable-line */
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      aria-labelledby="confirm-delete-dialog-title"
+      aria-describedby="confirm-delete-dialog-description"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "8px",
+            padding: theme.spacing(1),
+            backgroundColor: "#f8f9fa",
+            minWidth: "400px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        id="confirm-delete-dialog-title"
+        sx={{
+          padding: theme.spacing(3, 4, 2, 4),
+        }}
+      >
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontFamily: "Inter, sans-serif",
+            fontWeight: "700",
+            color: primaryDarkColor,
+            fontSize: "22px",
+          }}
+        >
+          Konfirmasi Penghapusan Riwayat {/* cspell:disable-line */}
+        </Typography>
+      </DialogTitle>
+      <DialogContent
+        sx={{
+          padding: theme.spacing(0, 4, 3, 4),
+        }}
+      >
+        <DialogContentText
+          id="confirm-delete-dialog-description"
+          sx={{
+            fontFamily: "Inter, sans-serif",
+            fontSize: "16px",
+            color: theme.palette.text.secondary,
+          }}
+        >
+          {contentText}
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions
+        sx={{
+          padding: theme.spacing(2, 4, 3, 4),
+          gap: theme.spacing(2),
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            flexGrow: 1,
+            padding: "12px 20px",
+            backgroundColor: lightButtonBackground,
+            color: primaryDarkColor,
+            fontSize: "16px",
+            fontFamily: "Inter, sans-serif",
+            fontWeight: "700",
+            lineHeight: "24px",
+            borderRadius: "6px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: theme.palette.grey[300],
+            },
+          }}
+        >
+          Kembali {/* cspell:disable-line */}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
+          sx={{
+            flexGrow: 1,
+            padding: "12px 20px",
+            backgroundColor: primaryDarkColor,
+            color: "white",
+            fontSize: "16px",
+            fontFamily: "Inter, sans-serif",
+            fontWeight: "700",
+            lineHeight: "24px",
+            borderRadius: "6px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#1E2532",
+            },
+          }}
+          autoFocus
+        >
+          Hapus {/* cspell:disable-line */}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 const ScanHistoryPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -38,6 +170,9 @@ const ScanHistoryPage: React.FC = () => {
   const cardOutlineColor = primaryDarkColor;
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedLogId, setSelectedLogId] = useState<string>("");
+  const [selectedLogName, setSelectedLogName] = useState<string>("");
   const rowsPerPage = 5;
 
   const {
@@ -57,9 +192,13 @@ const ScanHistoryPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+      setDeleteDialogOpen(false);
+      setSelectedLogId("");
+      setSelectedLogName("");
     },
     onError: (error: Error) => {
       console.error("Error deleting audit log:", error);
+      setDeleteDialogOpen(false);
     },
   });
 
@@ -74,11 +213,22 @@ const ScanHistoryPage: React.FC = () => {
     navigate(-1);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm("Apakah Anda yakin ingin menghapus riwayat ini?")) {
-      /* cspell:disable-line */
-      deleteMutation.mutate(id);
+  const handleDeleteClick = (id: string, itemName: string) => {
+    setSelectedLogId(id);
+    setSelectedLogName(itemName);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (selectedLogId) {
+      deleteMutation.mutate(selectedLogId);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setSelectedLogId("");
+    setSelectedLogName("");
   };
 
   const formatTimestamp = (isoString: string): string => {
@@ -232,7 +382,7 @@ const ScanHistoryPage: React.FC = () => {
                       flexGrow: 1,
                       display: "flex",
                       flexDirection: "column",
-                      alignItems: "flex-start"
+                      alignItems: "flex-start",
                     }}
                   >
                     {/* Item Name */}
@@ -262,7 +412,7 @@ const ScanHistoryPage: React.FC = () => {
                   {/* Delete Button */}
                   <IconButton
                     size="small"
-                    onClick={() => handleDelete(log.id)}
+                    onClick={() => handleDeleteClick(log.id, log.itemName)}
                     disabled={deleteMutation.isPending}
                     sx={{
                       padding: "8px",
@@ -311,6 +461,14 @@ const ScanHistoryPage: React.FC = () => {
           </>
         )}
       </Container>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDeleteDialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        itemName={selectedLogName}
+      />
 
       <Footer />
     </Box>
