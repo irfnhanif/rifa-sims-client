@@ -57,259 +57,11 @@ interface ConfirmActionDialogProps {
   itemName?: string;
 }
 
-const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
-  open,
-  onClose,
-  onConfirm,
-  title,
-  contentText,
-  itemName,
-}) => {
-  const theme = useTheme();
-  const primaryDarkColor = "#2D3648";
-  const lightButtonBackground = "#EDF0F7";
-  const robotoFontFamily = "Roboto, sans-serif";
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      aria-labelledby="confirm-action-dialog-title"
-      aria-describedby="confirm-action-dialog-description"
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "8px",
-            padding: theme.spacing(1),
-            backgroundColor: "#f8f9fa",
-            minWidth: "400px",
-          },
-        },
-      }}
-    >
-      <DialogTitle
-        id="confirm-action-dialog-title"
-        sx={{
-          padding: theme.spacing(3, 4, 2, 4),
-        }}
-      >
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{
-            fontFamily: robotoFontFamily,
-            fontWeight: "700",
-            color: primaryDarkColor,
-            fontSize: "22px",
-          }}
-        >
-          {title}
-        </Typography>
-      </DialogTitle>
-      <DialogContent
-        sx={{
-          padding: theme.spacing(0, 4, 3, 4),
-        }}
-      >
-        <DialogContentText
-          id="confirm-action-dialog-description"
-          sx={{
-            fontFamily: robotoFontFamily,
-            fontSize: "16px",
-            color: theme.palette.text.secondary,
-          }}
-        >
-          {contentText} {itemName && <strong>{itemName}</strong>}?
-        </DialogContentText>
-      </DialogContent>
-      <DialogActions
-        sx={{
-          padding: theme.spacing(2, 4, 3, 4),
-          gap: theme.spacing(2),
-        }}
-      >
-        <Button
-          onClick={onClose}
-          sx={{
-            flexGrow: 1,
-            padding: "12px 20px",
-            backgroundColor: lightButtonBackground,
-            color: primaryDarkColor,
-            fontSize: "16px",
-            fontFamily: robotoFontFamily,
-            fontWeight: "700",
-            lineHeight: "24px",
-            borderRadius: "6px",
-            textTransform: "none",
-            "&:hover": {
-              backgroundColor: theme.palette.grey[300],
-            },
-          }}
-        >
-          Batal {/* cspell:disable-line */}
-        </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
-          sx={{
-            flexGrow: 1,
-            padding: "12px 20px",
-            backgroundColor: primaryDarkColor,
-            color: "white",
-            fontSize: "16px",
-            fontFamily: robotoFontFamily,
-            fontWeight: "700",
-            lineHeight: "24px",
-            borderRadius: "6px",
-            textTransform: "none",
-            "&:hover": {
-              backgroundColor: "#1E2532",
-            },
-          }}
-          autoFocus
-        >
-          Konfirmasi {/* cspell:disable-line */}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
-
 interface BranchDetailDialogProps {
   open: boolean;
   onClose: () => void;
   branchNumber: number;
 }
-
-const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
-  open,
-  onClose,
-  branchNumber,
-}) => {
-  const theme = useTheme();
-  const primaryDarkColor = "#2D3648";
-  const lightButtonBackground = "#EDF0F7";
-
-  const robotoFontFamily = "Roboto, sans-serif";
-
-  const getBranchInfo = (branch: number) => {
-    switch (branch) {
-      case 1:
-        return {
-          name: "Cabang 1" /* cspell:disable-line */,
-          address: "", // Empty as requested
-        };
-      case 2:
-        return {
-          name: "Cabang 2" /* cspell:disable-line */,
-          address: "", // Empty as requested
-        };
-      default:
-        return {
-          name: "Cabang Tidak Diketahui" /* cspell:disable-line */,
-          address: "",
-        };
-    }
-  };
-
-  const branchInfo = getBranchInfo(branchNumber);
-
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: {
-            borderRadius: "8px",
-            padding: theme.spacing(1),
-            backgroundColor: "#f8f9fa",
-          },
-        },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          padding: theme.spacing(3, 4, 2, 4),
-        }}
-      >
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{
-            fontFamily: robotoFontFamily,
-            fontWeight: "700",
-            color: primaryDarkColor,
-            fontSize: "22px",
-          }}
-        >
-          Detail Cabang {/* cspell:disable-line */}
-        </Typography>
-      </DialogTitle>
-      <DialogContent
-        sx={{
-          padding: theme.spacing(0, 4, 3, 4),
-        }}
-      >
-        <Box sx={{ py: 2 }}>
-          <Typography
-            variant="h6"
-            gutterBottom
-            sx={{
-              fontFamily: robotoFontFamily,
-              fontWeight: "600",
-              color: primaryDarkColor,
-              fontSize: "18px",
-              mb: 2,
-            }}
-          >
-            {branchInfo.name}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              fontFamily: robotoFontFamily,
-              fontSize: "16px",
-              color: theme.palette.text.secondary,
-            }}
-          >
-            <strong>Alamat {/* cspell:disable-line */}:</strong>{" "}
-            {branchInfo.address || "Belum diisi" /* cspell:disable-line */}
-          </Typography>
-        </Box>
-      </DialogContent>
-      <DialogActions
-        sx={{
-          padding: theme.spacing(2, 4, 3, 4),
-          justifyContent: "center",
-        }}
-      >
-        <Button
-          onClick={onClose}
-          sx={{
-            padding: "12px 24px",
-            backgroundColor: lightButtonBackground,
-            color: primaryDarkColor,
-            fontSize: "16px",
-            fontFamily: robotoFontFamily,
-            fontWeight: "700",
-            lineHeight: "24px",
-            borderRadius: "6px",
-            textTransform: "none",
-            minWidth: "120px",
-            "&:hover": {
-              backgroundColor: theme.palette.grey[300],
-            },
-          }}
-        >
-          Tutup {/* cspell:disable-line */}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
 
 const UserListPage: React.FC = () => {
   const theme = useTheme();
@@ -712,6 +464,254 @@ const UserListPage: React.FC = () => {
 
       <Footer />
     </Box>
+  );
+};
+
+const ConfirmActionDialog: React.FC<ConfirmActionDialogProps> = ({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  contentText,
+  itemName,
+}) => {
+  const theme = useTheme();
+  const primaryDarkColor = "#2D3648";
+  const lightButtonBackground = "#EDF0F7";
+  const robotoFontFamily = "Roboto, sans-serif";
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      aria-labelledby="confirm-action-dialog-title"
+      aria-describedby="confirm-action-dialog-description"
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "8px",
+            padding: theme.spacing(1),
+            backgroundColor: "#f8f9fa",
+            minWidth: "400px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        id="confirm-action-dialog-title"
+        sx={{
+          padding: theme.spacing(3, 4, 2, 4),
+        }}
+      >
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontFamily: robotoFontFamily,
+            fontWeight: "700",
+            color: primaryDarkColor,
+            fontSize: "22px",
+          }}
+        >
+          {title}
+        </Typography>
+      </DialogTitle>
+      <DialogContent
+        sx={{
+          padding: theme.spacing(0, 4, 3, 4),
+        }}
+      >
+        <DialogContentText
+          id="confirm-action-dialog-description"
+          sx={{
+            fontFamily: robotoFontFamily,
+            fontSize: "16px",
+            color: theme.palette.text.secondary,
+          }}
+        >
+          {contentText} {itemName && <strong>{itemName}</strong>}?
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions
+        sx={{
+          padding: theme.spacing(2, 4, 3, 4),
+          gap: theme.spacing(2),
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            flexGrow: 1,
+            padding: "12px 20px",
+            backgroundColor: lightButtonBackground,
+            color: primaryDarkColor,
+            fontSize: "16px",
+            fontFamily: robotoFontFamily,
+            fontWeight: "700",
+            lineHeight: "24px",
+            borderRadius: "6px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: theme.palette.grey[300],
+            },
+          }}
+        >
+          Batal {/* cspell:disable-line */}
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
+          sx={{
+            flexGrow: 1,
+            padding: "12px 20px",
+            backgroundColor: primaryDarkColor,
+            color: "white",
+            fontSize: "16px",
+            fontFamily: robotoFontFamily,
+            fontWeight: "700",
+            lineHeight: "24px",
+            borderRadius: "6px",
+            textTransform: "none",
+            "&:hover": {
+              backgroundColor: "#1E2532",
+            },
+          }}
+          autoFocus
+        >
+          Konfirmasi {/* cspell:disable-line */}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
+  open,
+  onClose,
+  branchNumber,
+}) => {
+  const theme = useTheme();
+  const primaryDarkColor = "#2D3648";
+  const lightButtonBackground = "#EDF0F7";
+
+  const robotoFontFamily = "Roboto, sans-serif";
+
+  const getBranchInfo = (branch: number) => {
+    switch (branch) {
+      case 1:
+        return {
+          name: "Cabang 1" /* cspell:disable-line */,
+          address: "", // Empty as requested
+        };
+      case 2:
+        return {
+          name: "Cabang 2" /* cspell:disable-line */,
+          address: "", // Empty as requested
+        };
+      default:
+        return {
+          name: "Cabang Tidak Diketahui" /* cspell:disable-line */,
+          address: "",
+        };
+    }
+  };
+
+  const branchInfo = getBranchInfo(branchNumber);
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "8px",
+            padding: theme.spacing(1),
+            backgroundColor: "#f8f9fa",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          padding: theme.spacing(3, 4, 2, 4),
+        }}
+      >
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{
+            fontFamily: robotoFontFamily,
+            fontWeight: "700",
+            color: primaryDarkColor,
+            fontSize: "22px",
+          }}
+        >
+          Detail Cabang {/* cspell:disable-line */}
+        </Typography>
+      </DialogTitle>
+      <DialogContent
+        sx={{
+          padding: theme.spacing(0, 4, 3, 4),
+        }}
+      >
+        <Box sx={{ py: 2 }}>
+          <Typography
+            variant="h6"
+            gutterBottom
+            sx={{
+              fontFamily: robotoFontFamily,
+              fontWeight: "600",
+              color: primaryDarkColor,
+              fontSize: "18px",
+              mb: 2,
+            }}
+          >
+            {branchInfo.name}
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: robotoFontFamily,
+              fontSize: "16px",
+              color: theme.palette.text.secondary,
+            }}
+          >
+            <strong>Alamat {/* cspell:disable-line */}:</strong>{" "}
+            {branchInfo.address || "Belum diisi" /* cspell:disable-line */}
+          </Typography>
+        </Box>
+      </DialogContent>
+      <DialogActions
+        sx={{
+          padding: theme.spacing(2, 4, 3, 4),
+          justifyContent: "center",
+        }}
+      >
+        <Button
+          onClick={onClose}
+          sx={{
+            padding: "12px 24px",
+            backgroundColor: lightButtonBackground,
+            color: primaryDarkColor,
+            fontSize: "16px",
+            fontFamily: robotoFontFamily,
+            fontWeight: "700",
+            lineHeight: "24px",
+            borderRadius: "6px",
+            textTransform: "none",
+            minWidth: "120px",
+            "&:hover": {
+              backgroundColor: theme.palette.grey[300],
+            },
+          }}
+        >
+          Tutup {/* cspell:disable-line */}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
 
