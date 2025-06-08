@@ -124,7 +124,7 @@ const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
             {branchInfo.name}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Alamat:{" "}
+            Alamat {/* cspell:disable-line */}:{" "}
             {branchInfo.address || "Belum diisi" /* cspell:disable-line */}
           </Typography>
         </Box>
@@ -143,8 +143,9 @@ const UserListPage: React.FC = () => {
 
   const lightActionBackground = "#EDF0F7";
 
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  // Use 0-based indexing to match MUI conventions and server API
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -156,7 +157,7 @@ const UserListPage: React.FC = () => {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      setPage(1); // Reset to first page on new search
+      setPage(0); // Reset to first page on new search
     }, 500); // 500ms debounce delay
     return () => clearTimeout(handler);
   }, [searchTerm]);
@@ -193,14 +194,15 @@ const UserListPage: React.FC = () => {
 
   const handleBackClick = () => navigate(-1);
 
+  // Use 0-based indexing for MUI pagination
   const handlePageChange = (_event: unknown, newPage: number) =>
-    setPage(newPage + 1); // MUI pagination is 0-indexed, our API is 1-indexed
+    setPage(newPage);
 
   const handleRowsPerPageChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
+    setPage(0);
   };
 
   const openConfirmDialog = (user: User, action: "delete" | "reject") => {
@@ -483,11 +485,19 @@ const UserListPage: React.FC = () => {
               <TablePagination
                 component="div"
                 count={users.length}
-                page={page - 1}
+                page={page}
                 rowsPerPage={rowsPerPage}
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handleRowsPerPageChange}
                 rowsPerPageOptions={[5, 10, 25]}
+                labelRowsPerPage="Baris per halaman:" /* cspell:disable-line */
+                labelDisplayedRows={({ from, to, count }) =>
+                  `${from}-${to} dari ${
+                    count !== -1
+                      ? count
+                      : `lebih dari ${to}` /* cspell:disable-line */
+                  }`
+                }
               />
             </>
           )}
