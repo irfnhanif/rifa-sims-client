@@ -26,6 +26,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 import { AuthProvider } from "./helper/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
+import { UserRole } from "./types/user-role";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,7 +59,7 @@ const App = () => {
                 <Route
                   path="add"
                   element={
-                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                       <AddItemPage />
                     </RoleProtectedRoute>
                   }
@@ -66,7 +67,7 @@ const App = () => {
                 <Route
                   path=":id/edit"
                   element={
-                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                       <EditItemPage />
                     </RoleProtectedRoute>
                   }
@@ -78,7 +79,7 @@ const App = () => {
                 <Route
                   path=":id/edit"
                   element={
-                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                       <EditStockPage />
                     </RoleProtectedRoute>
                   }
@@ -89,7 +90,7 @@ const App = () => {
               <Route
                 path="near-empty-stocks"
                 element={
-                  <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                  <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                     <NearEmptyStocksPage />
                   </RoleProtectedRoute>
                 }
@@ -105,7 +106,7 @@ const App = () => {
               <Route
                 path="stock-change-history"
                 element={
-                  <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                  <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                     <StockChangeHistoryPage />
                   </RoleProtectedRoute>
                 }
@@ -115,7 +116,7 @@ const App = () => {
                 <Route
                   index
                   element={
-                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <RoleProtectedRoute allowedRoles={[UserRole.OWNER]}>
                       <UserListPage />
                     </RoleProtectedRoute>
                   }

@@ -46,8 +46,8 @@ const NotificationCenter: React.FC = () => {
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchAllNotifications,
-    refetchInterval: 30000, 
-    enabled: isOwner, 
+    refetchInterval: 30000,
+    enabled: isOwner,
   });
 
   const markAsReadMutation = useMutation({
@@ -128,7 +128,7 @@ const NotificationCenter: React.FC = () => {
     if (type === "LOW_STOCK") {
       const lines = message.split("\n");
       return (
-        <Box>
+        <Box component="div">
           {lines.map((line, index) => {
             const formattedLine = line.replace(
               /(\d+)/g,
@@ -140,8 +140,11 @@ const NotificationCenter: React.FC = () => {
                 key={index}
                 variant="body2"
                 color="text.secondary"
-                component="div"
-                sx={{ mb: index === lines.length - 1 ? 0.5 : 0.25 }}
+                component="span"
+                sx={{
+                  mb: index === lines.length - 1 ? 0.5 : 0.25,
+                  display: "block",
+                }}
                 dangerouslySetInnerHTML={{ __html: formattedLine }}
               />
             );
@@ -149,7 +152,7 @@ const NotificationCenter: React.FC = () => {
         </Box>
       );
     } else if (type === "NEW_USER") {
-      const userPattern = /Pengguna\s+(\S+)/;
+      const userPattern = /Pengguna\s+(\S+)/; /* cspell:disable-line */
       const match = message.match(userPattern);
 
       if (match) {
@@ -163,7 +166,8 @@ const NotificationCenter: React.FC = () => {
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ mb: 0.5, whiteSpace: "pre-line" }}
+            component="span"
+            sx={{ mb: 0.5, whiteSpace: "pre-line", display: "block" }}
             dangerouslySetInnerHTML={{ __html: formattedMessage }}
           />
         );
@@ -174,7 +178,8 @@ const NotificationCenter: React.FC = () => {
       <Typography
         variant="body2"
         color="text.secondary"
-        sx={{ mb: 0.5, whiteSpace: "pre-line" }}
+        component="span"
+        sx={{ mb: 0.5, whiteSpace: "pre-line", display: "block" }}
       >
         {message}
       </Typography>
@@ -220,11 +225,13 @@ const NotificationCenter: React.FC = () => {
           vertical: "top",
           horizontal: "right",
         }}
-        PaperProps={{
-          sx: {
-            width: 400,
-            maxHeight: 500,
-            mt: 1,
+        slotProps={{
+          paper: {
+            sx: {
+              width: 400,
+              maxHeight: 500,
+              mt: 1,
+            },
           },
         }}
       >
@@ -334,12 +341,17 @@ const NotificationCenter: React.FC = () => {
                         </Box>
                       }
                       secondary={
-                        <Box>
+                        <Box component="div">
                           {renderFormattedMessage(
                             notification.message,
                             notification.type
                           )}
-                          <Typography variant="caption" color="text.disabled">
+                          <Typography
+                            variant="caption"
+                            color="text.disabled"
+                            component="span"
+                            sx={{ display: "block" }}
+                          >
                             {formatTimeAgo(notification.createdAt)}
                           </Typography>
                         </Box>

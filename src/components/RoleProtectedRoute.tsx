@@ -14,7 +14,8 @@ const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
 }) => {
   const { user } = useAuth();
 
-  const hasPermission = user?.roles && allowedRoles === user?.roles;
+  const hasPermission =
+    user?.roles?.some((role) => allowedRoles.includes(role)) ?? false;
 
   if (!hasPermission) {
     return <NotFoundPage />;

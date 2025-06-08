@@ -4,7 +4,7 @@ const NearEmptyStocksPage: React.FC = () => {
   return (
     <StockListPageTemplate
       mode="near-empty"
-      title="Daftar Stok Barang Menipis"
+      title="Daftar Stok Barang Habis"
       showBackButton={true}
     />
   );
