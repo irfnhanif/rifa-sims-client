@@ -32,15 +32,22 @@ import type {
   SystemNotification,
   NotificationType,
 } from "../types/notification";
+import { useAuth } from "../helper/use-auth";
+import { UserRole } from "../types/user-role";
 
 const NotificationCenter: React.FC = () => {
-  const [anchorElement, setAnchorElement] = useState<HTMLButtonElement | null>(null);
+  const [anchorElement, setAnchorElement] = useState<HTMLButtonElement | null>(
+    null
+  );
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchAllNotifications,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000, 
+    enabled: isOwner, 
   });
 
   const markAsReadMutation = useMutation({
@@ -56,6 +63,10 @@ const NotificationCenter: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
   });
+
+  if (!isOwner) {
+    return null;
+  }
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const open = Boolean(anchorElement);
@@ -277,7 +288,7 @@ const NotificationCenter: React.FC = () => {
                         <Box
                           sx={{
                             display: "flex",
-                            alignItems: "flex-start", // Change from "center" to "flex-start"
+                            alignItems: "flex-start",
                             gap: 1,
                             mb: 0.5,
                           }}
@@ -288,7 +299,7 @@ const NotificationCenter: React.FC = () => {
                               fontWeight: 600,
                               flexGrow: 1,
                               whiteSpace: "pre-line",
-                              lineHeight: 1.2, // Consistent line height
+                              lineHeight: 1.2,
                             }}
                           >
                             {notification.title}
@@ -313,9 +324,9 @@ const NotificationCenter: React.FC = () => {
                                   height: 8,
                                   borderRadius: "50%",
                                   bgcolor: "primary.main",
-                                  flexShrink: 0, 
-                                  alignSelf: "flex-start", 
-                                  mt: 0.25, 
+                                  flexShrink: 0,
+                                  alignSelf: "flex-start",
+                                  mt: 0.25,
                                 }}
                               />
                             )}
@@ -324,7 +335,10 @@ const NotificationCenter: React.FC = () => {
                       }
                       secondary={
                         <Box>
-                          {renderFormattedMessage(notification.message, notification.type)}
+                          {renderFormattedMessage(
+                            notification.message,
+                            notification.type
+                          )}
                           <Typography variant="caption" color="text.disabled">
                             {formatTimeAgo(notification.createdAt)}
                           </Typography>

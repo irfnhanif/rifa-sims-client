@@ -34,6 +34,7 @@ import type {
 
 // Icons
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useAuth } from "../../helper/use-auth";
 
 interface ConfirmDeleteDialogProps {
   open: boolean;
@@ -42,11 +43,12 @@ interface ConfirmDeleteDialogProps {
   itemName?: string;
 }
 
-
 const ScanHistoryPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const { user } = useAuth();
 
   const primaryDarkColor = "#2D3648";
   const cardOutlineColor = primaryDarkColor;
@@ -65,7 +67,7 @@ const ScanHistoryPage: React.FC = () => {
   } = useQuery<PaginatedHistoryResponse, Error>({
     queryKey: ["scanHistory", currentPage, rowsPerPage],
     queryFn: () =>
-      fetchScanHistory({ page: currentPage - 1, size: rowsPerPage }),
+      fetchScanHistory({ page: currentPage - 1, size: rowsPerPage, username: user?.username }),
     placeholderData: (previousData) => previousData,
   });
 

@@ -54,7 +54,7 @@ export const fetchScanHistory = async (
   params: Partial<ScanHistoryParam> = {}
 ): Promise<PaginatedHistoryResponse> => {
   const {
-    username = "rifaowner", // cspell:disable-line
+    username = "", // cspell:disable-line
     changeTypes = ["IN", "OUT"],
     page = 0,
     size = 10,
