@@ -13,7 +13,7 @@ export interface User {
 
 export interface UserInfo {
   username: string;
-  roles: UserRole;
+  roles: UserRole[];
   isExpired: boolean;
 }
 

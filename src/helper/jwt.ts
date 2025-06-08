@@ -4,7 +4,7 @@ import type { UserRole } from "../types/user-role";
 
 interface JWTPayload {
   sub: string;
-  roles: UserRole;
+  roles: UserRole[];
   iat?: number;
   exp?: number;
   [key: string]: any;

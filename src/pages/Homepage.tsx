@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   AppBar,
@@ -34,12 +34,15 @@ import { useNavigate } from "react-router-dom";
 // Import NotificationCenter component and auth
 import NotificationCenter from "../components/NavigationCenter";
 import { useAuth } from "../helper/use-auth";
+import type { UserInfo } from "../types/user";
+import { UserRole } from "../types/user-role";
 
 interface NavItem {
   id: string;
   label: string;
   icon: React.ReactElement;
   path: string;
+  ownerOnly?: boolean;
 }
 
 interface ProfileMenuItem {
@@ -48,6 +51,7 @@ interface ProfileMenuItem {
   icon: React.ReactElement;
   action: () => void;
   color?: string;
+  ownerOnly?: boolean;
 }
 
 const HomePage: React.FC = () => {
@@ -55,6 +59,11 @@ const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    setIsOwner(user?.roles[0] === UserRole.OWNER);
+  }, [user?.roles]);
 
   const navigationItems: NavItem[] = [
     {
@@ -74,6 +83,7 @@ const HomePage: React.FC = () => {
       label: "Riwayat Perubahan" /* cspell:disable-line */,
       icon: <HistoryIcon />,
       path: "/stock-change-history",
+      ownerOnly: true,
     },
     {
       id: "scan-barcode",
@@ -110,7 +120,7 @@ const HomePage: React.FC = () => {
       icon: <PersonIcon />,
       action: () => {
         setIsProfileDrawerOpen(false);
-        navigate("/users/profile")
+        navigate("/users/profile");
       },
     },
     {
@@ -121,6 +131,7 @@ const HomePage: React.FC = () => {
         setIsProfileDrawerOpen(false);
         navigate("/near-empty-stocks");
       },
+      ownerOnly: true,
     },
     {
       id: "users",
@@ -128,8 +139,9 @@ const HomePage: React.FC = () => {
       icon: <PeopleIcon />,
       action: () => {
         setIsProfileDrawerOpen(false);
-        navigate("/users")
+        navigate("/users");
       },
+      ownerOnly: true,
     },
     {
       id: "logout",
@@ -139,6 +151,14 @@ const HomePage: React.FC = () => {
       color: "#d32f2f", // Error red color
     },
   ];
+
+  const filteredNavigationItems = navigationItems.filter(
+    (item) => !item.ownerOnly || isOwner
+  );
+
+  const filteredProfileMenuItems = profileMenuItems.filter(
+    (item) => !item.ownerOnly || isOwner
+  );
 
   return (
     <Box
@@ -189,7 +209,7 @@ const HomePage: React.FC = () => {
             Rifa-SIMS {/* cspell:disable-line */}
           </Typography>
 
-          <NotificationCenter />
+          {isOwner && <NotificationCenter />}
         </Toolbar>
       </AppBar>
 
@@ -267,9 +287,8 @@ const HomePage: React.FC = () => {
 
           <Divider sx={{ mb: 1 }} />
 
-          {/* Menu Items */}
           <List sx={{ p: 0 }}>
-            {profileMenuItems.map((item) => (
+            {filteredProfileMenuItems.map((item) => (
               <ListItem key={item.id} disablePadding>
                 <ListItemButton
                   onClick={item.action}
@@ -337,7 +356,7 @@ const HomePage: React.FC = () => {
             margin: "0 auto",
           }}
         >
-          {navigationItems.map((item) => (
+          {filteredNavigationItems.map((item) => (
             <ListItemButton
               key={item.id}
               onClick={() => handleNavigation(item.path)}
@@ -401,7 +420,8 @@ const HomePage: React.FC = () => {
       >
         <Typography variant="body2" color="text.secondary">
           &copy; {new Date().getFullYear()} Rifa-SIMS.{" "}
-          {/* cspell:disable-line */} All rights reserved.
+          {/* cspell:disable-line */}
+          All rights reserved.
         </Typography>
       </Box>
     </Box>
