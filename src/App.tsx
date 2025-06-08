@@ -2,6 +2,7 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+
 import HomePage from "./pages/Homepage";
 import ItemListPage from "./pages/items/ItemListPage";
 import AddItemPage from "./pages/items/AddItemPage";
@@ -16,12 +17,15 @@ import StockChangeHistoryPage from "./pages/audit-logs/StockChangeHistoryPage";
 import AllStocksPage from "./pages/stocks/AllStocksPage";
 import NearEmptyStocksPage from "./pages/stocks/NearEmptyStocksPage";
 import LoginPage from "./pages/auth/LoginPage";
-import { AuthProvider } from "./helper/AuthContext";
-import ProtectedRoute from "./components/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ProfilePage from "./pages/users/ProfilePage";
 import EditProfilePage from "./pages/users/EditProfilePage";
 import UserListPage from "./pages/users/UserListPage";
+import NotFoundPage from "./pages/NotFoundPage";
+
+import { AuthProvider } from "./helper/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import RoleProtectedRoute from "./components/RoleProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,19 +55,44 @@ const App = () => {
 
               <Route path="items">
                 <Route index element={<ItemListPage />} />
-                <Route path="add" element={<AddItemPage />} />
-                <Route path=":id/edit" element={<EditItemPage />} />
+                <Route
+                  path="add"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                      <AddItemPage />
+                    </RoleProtectedRoute>
+                  }
+                />
+                <Route
+                  path=":id/edit"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                      <EditItemPage />
+                    </RoleProtectedRoute>
+                  }
+                />
               </Route>
 
               <Route path="stocks">
                 <Route index element={<AllStocksPage />} />
-                <Route path=":id/edit" element={<EditStockPage />} />
+                <Route
+                  path=":id/edit"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                      <EditStockPage />
+                    </RoleProtectedRoute>
+                  }
+                />
                 <Route path=":id/detail" element={<ItemDetailPage />} />
               </Route>
 
               <Route
                 path="near-empty-stocks"
-                element={<NearEmptyStocksPage />}
+                element={
+                  <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <NearEmptyStocksPage />
+                  </RoleProtectedRoute>
+                }
               />
 
               <Route path="scan">
@@ -75,23 +104,36 @@ const App = () => {
 
               <Route
                 path="stock-change-history"
-                element={<StockChangeHistoryPage />}
+                element={
+                  <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                    <StockChangeHistoryPage />
+                  </RoleProtectedRoute>
+                }
               />
 
-              <Route path="/users">
-                <Route index element={<UserListPage />} />
+              <Route path="users">
+                <Route
+                  index
+                  element={
+                    <RoleProtectedRoute allowedRoles={["OWNER"]}>
+                      <UserListPage />
+                    </RoleProtectedRoute>
+                  }
+                />
                 <Route path="profile">
                   <Route index element={<ProfilePage />} />
                   <Route path="edit" element={<EditProfilePage />} />
                 </Route>
               </Route>
             </Route>
+
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
         {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </AuthProvider>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;
