@@ -34,7 +34,6 @@ import { useNavigate } from "react-router-dom";
 // Import NotificationCenter component and auth
 import NotificationCenter from "../components/NavigationCenter";
 import { useAuth } from "../helper/use-auth";
-import type { UserInfo } from "../types/user";
 import { UserRole } from "../types/user-role";
 
 interface NavItem {

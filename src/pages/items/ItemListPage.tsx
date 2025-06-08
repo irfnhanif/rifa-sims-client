@@ -37,9 +37,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 
 import type { Item } from "../../types/item";
 import { fetchItems, deleteItem } from "../../api/items";
+import { useAuth } from "../../helper/use-auth";
 
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
+import { UserRole } from "../../types/user-role";
 
 interface ConfirmDeleteDialogProps {
   open: boolean;
@@ -50,16 +52,18 @@ interface ConfirmDeleteDialogProps {
   contentText?: string;
 }
 
-
 const ItemListPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const primaryColor = "#2D3648";
   const primaryColorHover = "#1E2532";
   const lightButtonBackground = "#EDF0F7";
   const iconActionColor = "#2D3648";
+
+  const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -88,7 +92,7 @@ const ItemListPage: React.FC = () => {
     onSuccess: (message) => {
       setSnackbar({
         open: true,
-        message: message || "Item berhasil dihapus",
+        message: message || "Item berhasil dihapus" /* cspell:disable-line */,
         severity: "success",
       });
       refetch();
@@ -100,7 +104,8 @@ const ItemListPage: React.FC = () => {
     onError: (error: Error) => {
       setSnackbar({
         open: true,
-        message: error.message || "Gagal menghapus item",
+        message:
+          error.message || "Gagal menghapus item" /* cspell:disable-line */,
         severity: "error",
       });
       setDeleteDialogOpen(false);
@@ -129,8 +134,8 @@ const ItemListPage: React.FC = () => {
   };
 
   const handleEditClick = (id: string) => {
-    navigate(`/items/${id}/edit`)
-  }
+    navigate(`/items/${id}/edit`);
+  };
 
   const handleDeleteClick = (item: Item) => {
     setItemToDelete(item);
@@ -221,7 +226,7 @@ const ItemListPage: React.FC = () => {
       }}
     >
       <Header
-        title="Daftar Barang"
+        title="Daftar Barang" /* cspell:disable-line */
         onBackClick={handleBackClick}
         backgroundColor={primaryColor}
       />
@@ -248,7 +253,7 @@ const ItemListPage: React.FC = () => {
               fullWidth
               variant="outlined"
               size="small"
-              placeholder="Cari barang (klik ikon search atau tekan Enter untuk mencari di server)"
+              placeholder="Cari barang (klik ikon search atau tekan Enter untuk mencari di server)" /* cspell:disable-line */
               value={searchTerm}
               onChange={handleSearchChange}
               onKeyUp={handleKeyUp}
@@ -256,7 +261,9 @@ const ItemListPage: React.FC = () => {
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      <Tooltip title="Cari barang di server">
+                      <Tooltip
+                        title="Cari barang di server" /* cspell:disable-line */
+                      >
                         <IconButton
                           onClick={handleServerSearch}
                           edge="end"
@@ -312,21 +319,24 @@ const ItemListPage: React.FC = () => {
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Tambah Barang">
-                <IconButton
-                  sx={{
-                    padding: "8px",
-                    background: primaryColor,
-                    borderRadius: "6px",
-                    color: "white",
-                    "&:hover": { background: primaryColorHover },
-                  }}
-                  aria-label="add item"
-                  onClick={handleAddItemNav}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Tooltip>
+              {/* Only show Add button for OWNER */}
+              {isOwner && (
+                <Tooltip title="Tambah Barang" /* cspell:disable-line */>
+                  <IconButton
+                    sx={{
+                      padding: "8px",
+                      background: primaryColor,
+                      borderRadius: "6px",
+                      color: "white",
+                      "&:hover": { background: primaryColorHover },
+                    }}
+                    aria-label="add item"
+                    onClick={handleAddItemNav}
+                  >
+                    <AddIcon />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           </Paper>
 
@@ -343,10 +353,10 @@ const ItemListPage: React.FC = () => {
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: "30%",
+                      width: isOwner ? "30%" : "40%",
                     }}
                   >
-                    Nama Barang
+                    Nama Barang {/* cspell:disable-line */}
                   </TableCell>
                   <TableCell
                     sx={{
@@ -354,7 +364,7 @@ const ItemListPage: React.FC = () => {
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: "25%",
+                      width: isOwner ? "25%" : "30%",
                     }}
                   >
                     Barcode
@@ -364,23 +374,25 @@ const ItemListPage: React.FC = () => {
                       fontWeight: "bold",
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
-                      borderRight: `1px solid #CBD2E0`,
-                      width: "30%",
+                      borderRight: isOwner ? `1px solid #CBD2E0` : "none",
+                      width: isOwner ? "30%" : "30%",
                     }}
                   >
-                    Deskripsi
+                    Deskripsi {/* cspell:disable-line */}
                   </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{
-                      fontWeight: "bold",
-                      color: primaryColor,
-                      fontFamily: "Roboto, sans-serif",
-                      width: "15%",
-                    }}
-                  >
-                    Aksi
-                  </TableCell>
+                  {isOwner && (
+                    <TableCell
+                      align="center"
+                      sx={{
+                        fontWeight: "bold",
+                        color: primaryColor,
+                        fontFamily: "Roboto, sans-serif",
+                        width: "15%",
+                      }}
+                    >
+                      Aksi {/* cspell:disable-line */}
+                    </TableCell>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -410,67 +422,75 @@ const ItemListPage: React.FC = () => {
                       <TableCell
                         sx={{
                           fontFamily: "Roboto, sans-serif",
-                          borderRight: `1px solid #CBD2E0`,
+                          borderRight: isOwner ? `1px solid #CBD2E0` : "none",
                           whiteSpace: "pre-line",
                           verticalAlign: "top",
                         }}
                       >
                         {item.description || "-"}
                       </TableCell>
-                      <TableCell align="center" sx={{ verticalAlign: "top" }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            gap: 1,
-                          }}
-                        >
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(item.id)}
-                              sx={{
-                                padding: "8px",
-                                background: lightButtonBackground,
-                                borderRadius: "6px",
-                                color: iconActionColor,
-                                "&:hover": {
-                                  background: theme.palette.grey[300],
-                                },
-                              }}
-                            >
-                              <EditIcon sx={{ fontSize: "16px" }} />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(item)}
-                              disabled={deleteItemMutation.isPending}
-                              sx={{
-                                padding: "8px",
-                                background: lightButtonBackground,
-                                borderRadius: "6px",
-                                color: iconActionColor,
-                                "&:hover": {
-                                  background: theme.palette.grey[300],
-                                },
-                              }}
-                            >
-                              <DeleteIcon sx={{ fontSize: "16px" }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
+                      {isOwner && (
+                        <TableCell align="center" sx={{ verticalAlign: "top" }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <Tooltip title="Edit">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditClick(item.id)}
+                                sx={{
+                                  padding: "8px",
+                                  background: lightButtonBackground,
+                                  borderRadius: "6px",
+                                  color: iconActionColor,
+                                  "&:hover": {
+                                    background: theme.palette.grey[300],
+                                  },
+                                }}
+                              >
+                                <EditIcon sx={{ fontSize: "16px" }} />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteClick(item)}
+                                disabled={deleteItemMutation.isPending}
+                                sx={{
+                                  padding: "8px",
+                                  background: lightButtonBackground,
+                                  borderRadius: "6px",
+                                  color: iconActionColor,
+                                  "&:hover": {
+                                    background: theme.palette.grey[300],
+                                  },
+                                }}
+                              >
+                                <DeleteIcon sx={{ fontSize: "16px" }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
-                      {searchTerm
-                        ? `Tidak ada barang yang cocok dengan pencarian "${searchTerm}"`
-                        : "Tidak ada data barang"}
+                    <TableCell
+                      colSpan={isOwner ? 4 : 3}
+                      align="center"
+                      sx={{ py: 3 }}
+                    >
+                      {
+                        searchTerm
+                          ? `Tidak ada barang yang cocok dengan pencarian "${searchTerm}"` /* cspell:disable-line */
+                          : "Tidak ada data barang" /* cspell:disable-line */
+                      }
                     </TableCell>
                   </TableRow>
                 )}
@@ -486,10 +506,13 @@ const ItemListPage: React.FC = () => {
               page={page}
               onPageChange={handleChangePage}
               onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Baris per halaman:"
+              labelRowsPerPage="Baris per halaman:" /* cspell:disable-line */
               labelDisplayedRows={({ from, to, count }) =>
                 `${from}-${to} dari ${
-                  count !== -1 ? count : `lebih dari ${to}`
+                  /* cspell:disable-line */
+                  count !== -1
+                    ? count
+                    : `lebih dari ${to}` /* cspell:disable-line */
                 }`
               }
               sx={{
@@ -512,13 +535,15 @@ const ItemListPage: React.FC = () => {
 
       <Footer />
 
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDeleteDialog
-        open={deleteDialogOpen}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        itemName={itemToDelete?.name}
-      />
+      {/* Delete Confirmation Dialog - Only for OWNER */}
+      {isOwner && (
+        <ConfirmDeleteDialog
+          open={deleteDialogOpen}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          itemName={itemToDelete?.name}
+        />
+      )}
 
       {/* Snackbar for notifications */}
       <Snackbar
@@ -544,7 +569,7 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
   onClose,
   onConfirm,
   itemName,
-  title = "Konfirmasi Penghapusan Barang",
+  title = "Konfirmasi Penghapusan Barang" /* cspell:disable-line */,
   contentText,
 }) => {
   const theme = useTheme();
@@ -552,8 +577,8 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
   const lightButtonBackground = "#EDF0F7";
 
   const defaultContentText = itemName
-    ? `Apakah Anda yakin ingin menghapus barang "${itemName}"? Tindakan ini tidak dapat diurungkan.`
-    : "Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat diurungkan.";
+    ? `Apakah Anda yakin ingin menghapus barang "${itemName}"? Tindakan ini tidak dapat diurungkan.` /* cspell:disable-line */
+    : "Apakah Anda yakin ingin menghapus barang ini? Tindakan ini tidak dapat diurungkan."; /* cspell:disable-line */
 
   const finalContentText = contentText || defaultContentText;
 
@@ -632,7 +657,7 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
             },
           }}
         >
-          Kembali
+          Kembali {/* cspell:disable-line */}
         </Button>
         <Button
           onClick={onConfirm}
@@ -654,7 +679,7 @@ const ConfirmDeleteDialog: React.FC<ConfirmDeleteDialogProps> = ({
           }}
           autoFocus
         >
-          Hapus
+          Hapus {/* cspell:disable-line */}
         </Button>
       </DialogActions>
     </Dialog>

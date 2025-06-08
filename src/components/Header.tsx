@@ -1,7 +1,9 @@
 import React from "react";
 import { AppBar, Toolbar, Typography, IconButton } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useAuth } from "../helper/use-auth";
 import NotificationCenter from "./NavigationCenter";
+import { UserRole } from "../types/user-role";
 
 interface HeaderProps {
   title: string;
@@ -16,6 +18,9 @@ const Header: React.FC<HeaderProps> = ({
   showBackButton = true,
   backgroundColor = "#2D3648",
 }) => {
+  const { user } = useAuth();
+  const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
+
   return (
     <AppBar position="static" sx={{ backgroundColor }}>
       <Toolbar>
@@ -37,7 +42,7 @@ const Header: React.FC<HeaderProps> = ({
         >
           {title}
         </Typography>
-        <NotificationCenter />
+        {isOwner && <NotificationCenter />}
       </Toolbar>
     </AppBar>
   );
