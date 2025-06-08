@@ -128,9 +128,7 @@ const HomePage: React.FC = () => {
       icon: <PeopleIcon />,
       action: () => {
         setIsProfileDrawerOpen(false);
-        // Navigate to users page when implemented
-        console.log("Navigate to users list");
-        // navigate("/users");
+        navigate("/users")
       },
     },
     {

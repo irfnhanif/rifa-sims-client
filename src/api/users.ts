@@ -86,7 +86,7 @@ export const acceptUser = async (id: string): Promise<string> => {
 };
 
 export const rejectUser = async (id: string): Promise<string> => {
-  const response = await apiClient.patch(`/users/${id}/accept`);
+  const response = await apiClient.patch(`/users/${id}/reject`);
 
   const result: ApiResponse<string> = await response.json();
 

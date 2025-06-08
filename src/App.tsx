@@ -21,6 +21,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import RegisterPage from "./pages/auth/RegisterPage";
 import ProfilePage from "./pages/users/ProfilePage";
 import EditProfilePage from "./pages/users/EditProfilePage";
+import UserListPage from "./pages/users/UserListPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -78,6 +79,7 @@ const App = () => {
               />
 
               <Route path="/users">
+                <Route index element={<UserListPage />} />
                 <Route path="profile">
                   <Route index element={<ProfilePage />} />
                   <Route path="edit" element={<EditProfilePage />} />
