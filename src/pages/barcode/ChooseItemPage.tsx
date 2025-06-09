@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Container,
@@ -8,12 +8,19 @@ import {
   useTheme,
   Alert,
   Radio,
+  Switch,
+  FormControlLabel,
+  CircularProgress,
 } from "@mui/material";
-import { useNavigate, useLocation } from "react-router-dom";
-
+import { useLocation, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { fetchRecommendedItemStockByBarcode } from "../../api/stocks";
+import type {
+  BarcodeScanResponse,
+  RecommendedBarcodeScanResponse,
+} from "../../types/item-stock";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import type { BarcodeScanResponse } from "../../types/item-stock";
 
 interface LocationState {
   items?: BarcodeScanResponse[];
@@ -25,7 +32,8 @@ const ChooseItemPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const { items = [], barcode } = (location.state as LocationState) || {};
+  const { items: initialItems = [], barcode } =
+    (location.state as LocationState) || {};
 
   const primaryDarkColor = "#2D3648";
   const lightButtonBackground = "#EDF0F7";
@@ -33,26 +41,59 @@ const ChooseItemPage: React.FC = () => {
   const cardSelectedOutlineColor = theme.palette.primary.main;
 
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [useRecommendations, setUseRecommendations] = useState(() => {
+    const saved = localStorage.getItem("useRecommendations");
+    return saved ? JSON.parse(saved) : false;
+  });
 
-  const handleItemSelect = (itemId: string) => {
-    setSelectedItemId(itemId === selectedItemId ? null : itemId);
+  useEffect(() => {
+    localStorage.setItem(
+      "useRecommendations",
+      JSON.stringify(useRecommendations)
+    );
+  }, [useRecommendations]);
+
+  // Helper function to get recommendation level and color
+  const getRecommendationLevel = (score: number) => {
+    if (score >= 0.8)
+      return {
+        label: "Sangat Cocok",
+        color: "#4caf50",
+      }; /* cspell:disable-line */
+    if (score >= 0.6)
+      return { label: "Cocok", color: "#ff9800" }; /* cspell:disable-line */
+    if (score >= 0.4)
+      return { label: "Mungkin", color: "#2196f3" }; /* cspell:disable-line */
+    return {
+      label: "Kurang Cocok",
+      color: "#757575",
+    }; /* cspell:disable-line */
   };
 
-  const handleContinue = () => {
-    if (selectedItemId) {
-      const selectedItem = items.find(
-        (item) => item.itemStockId === selectedItemId
-      );
-      if (selectedItem) {
-        navigate(`/scan/${selectedItem.itemStockId}/input`, {
-          state: { itemName: selectedItem.itemName, barcode: barcode, currentStock: selectedItem.currentStock },
-        });
-      }
-    }
-  };
+  // Fetch recommended items when toggle is enabled
+  const {
+    data: recommendedItems,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["recommendedItems", barcode],
+    queryFn: () => fetchRecommendedItemStockByBarcode(barcode!),
+    enabled: useRecommendations && !!barcode,
+  });
 
-  const handleCancel = () => {
-    navigate(-1);
+  // Use recommended items if toggle is on, otherwise use initial items
+  const currentItems = useRecommendations
+    ? recommendedItems || []
+    : initialItems;
+
+  const isHighlyRecommended = (
+    item: BarcodeScanResponse | RecommendedBarcodeScanResponse
+  ) => {
+    return (
+      useRecommendations &&
+      "recommendationScore" in item &&
+      item.recommendationScore >= 0.6
+    );
   };
 
   const robotoFontFamily = "Roboto, sans-serif";
@@ -80,6 +121,113 @@ const ChooseItemPage: React.FC = () => {
     color: primaryDarkColor,
   };
 
+  const renderScoreWithProgress = (score: number) => {
+    const { label, color } = getRecommendationLevel(score);
+
+    return (
+      <Box
+        sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 150 }}
+      >
+        <Typography sx={itemCardDetailLabelStyle}>
+          Relevansi: {/* cspell:disable-line */}
+        </Typography>
+        <Box
+          sx={{ flexGrow: 1, display: "flex", alignItems: "center", gap: 0.5 }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 4,
+              backgroundColor: "#e0e0e0",
+              borderRadius: 2,
+              position: "relative",
+            }}
+          >
+            <Box
+              sx={{
+                width: `${score * 100}%`,
+                height: "100%",
+                backgroundColor: color,
+                borderRadius: 2,
+              }}
+            />
+          </Box>
+          <Typography
+            sx={{
+              ...itemCardDetailStyle,
+              fontWeight: "600",
+              color: color,
+              fontSize: "10px",
+            }}
+          >
+            {label}
+          </Typography>
+        </Box>
+      </Box>
+    );
+  };
+
+  const handleItemSelect = (itemId: string) => {
+    setSelectedItemId(itemId === selectedItemId ? null : itemId);
+  };
+
+  const handleContinue = () => {
+    if (selectedItemId) {
+      const selectedItem = currentItems.find(
+        (item) => item.itemStockId === selectedItemId
+      );
+      if (selectedItem) {
+        navigate(`/scan/${selectedItem.itemStockId}/input`, {
+          state: {
+            itemName: selectedItem.itemName,
+            barcode: barcode,
+            currentStock: selectedItem.currentStock,
+          },
+        });
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    navigate(-1);
+  };
+
+  const handleRecommendationToggle = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setUseRecommendations(event.target.checked);
+    setSelectedItemId(null); // Reset selection when switching modes
+  };
+
+  const getItemCardBorderColor = (
+    item: BarcodeScanResponse | RecommendedBarcodeScanResponse
+  ) => {
+    if (selectedItemId === item.itemStockId) {
+      return cardSelectedOutlineColor;
+    }
+
+    // More nuanced color coding based on score ranges
+    if (useRecommendations && "recommendationScore" in item) {
+      if (item.recommendationScore >= 0.8) return "#4caf50"; // Green for very high
+      if (item.recommendationScore >= 0.6) return "#ff9800"; // Orange for high
+      if (item.recommendationScore >= 0.4) return "#2196f3"; // Blue for medium
+      return cardOutlineColor; // Default for low
+    }
+
+    return cardOutlineColor;
+  };
+
+  if (!barcode) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Barcode tidak ditemukan. Silakan kembali dan scan ulang.{" "}
+          {/* cspell:disable-line */}
+        </Alert>
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -93,7 +241,7 @@ const ChooseItemPage: React.FC = () => {
       }}
     >
       <Header
-        title="Daftar Barang" // cspell:disable-line
+        title="Pilih Barang" /* cspell:disable-line */
         showBackButton={true}
         onBackClick={handleCancel}
       />
@@ -108,85 +256,200 @@ const ChooseItemPage: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        {items.length === 0 && (
-          <Alert severity="warning" sx={{ m: 2 }}>
+        {/* Recommendation Toggle */}
+        <Paper
+          elevation={1}
+          sx={{
+            p: 2,
+            mb: 2,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Box>
+            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
+              Mode Pencarian {/* cspell:disable-line */}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {
+                useRecommendations
+                  ? "Menampilkan barang berdasarkan rekomendasi sistem" /* cspell:disable-line */
+                  : "Menampilkan semua barang dengan barcode yang sama" /* cspell:disable-line */
+              }
+            </Typography>
+          </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={useRecommendations}
+                onChange={handleRecommendationToggle}
+                color="primary"
+              />
+            }
+            label="Gunakan Rekomendasi" /* cspell:disable-line */
+            labelPlacement="start"
+          />
+        </Paper>
+
+        {/* Loading State */}
+        {isLoading && (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+            <CircularProgress />
+            <Typography sx={{ ml: 2 }}>
+              Memuat rekomendasi... {/* cspell:disable-line */}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            Gagal memuat rekomendasi. Menggunakan hasil pencarian standar.{" "}
+            {/* cspell:disable-line */}
+          </Alert>
+        )}
+
+        {/* No Items Alert */}
+        {!isLoading && currentItems.length === 0 && (
+          <Alert severity="warning" sx={{ mb: 2 }}>
             Tidak ada barang yang tersedia untuk dipilih.{" "}
             {/* cspell:disable-line */}
           </Alert>
         )}
 
-        {items.length > 0 && (
+        {/* Items List */}
+        {!isLoading && currentItems.length > 0 && (
           <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
             <Box display="flex" flexDirection="column" gap={theme.spacing(1.5)}>
-              {items.map((item) => (
-                <Paper
-                  elevation={selectedItemId === item.itemStockId ? 4 : 1}
-                  key={item.itemStockId}
-                  onClick={() => handleItemSelect(item.itemStockId)}
-                  sx={{
-                    padding: { xs: "18px 16px", sm: "18px 24px" },
-                    background: "white",
-                    borderRadius: "8px",
-                    border: `2px solid ${
-                      selectedItemId === item.itemStockId
-                        ? cardSelectedOutlineColor
-                        : cardOutlineColor
-                    }`,
-                    cursor: "pointer",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 1.5,
-                  }}
-                >
-                  <Radio
-                    checked={selectedItemId === item.itemStockId}
-                    value={item.itemStockId}
-                    name="selected-item-radio"
-                    slotProps={{ input: { "aria-label": item.itemName } }}
-                    size="small"
-                    sx={{ mt: 0.25 }}
-                  />
-                  <Box
+              {currentItems.map(
+                (
+                  item: BarcodeScanResponse | RecommendedBarcodeScanResponse
+                ) => (
+                  <Paper
+                    elevation={selectedItemId === item.itemStockId ? 4 : 1}
+                    key={item.itemStockId}
+                    onClick={() => handleItemSelect(item.itemStockId)}
                     sx={{
-                      flexGrow: 1,
+                      padding: { xs: "18px 16px", sm: "18px 24px" },
+                      background: "white",
+                      borderRadius: "8px",
+                      border: `2px solid ${getItemCardBorderColor(item)}`,
+                      cursor: "pointer",
+                      transition: "border-color 0.2s, box-shadow 0.2s",
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "flex-start",
+                      gap: 1.5,
+                      position: "relative",
                     }}
                   >
-                    <Typography sx={itemCardNameStyle}>
-                      {item.itemName}
-                    </Typography>
-
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                    >
-                      <Typography sx={itemCardDetailLabelStyle}>
-                        Jumlah Stok: {/* cspell:disable-line */}
-                      </Typography>
-                      <Typography
+                    {/* Recommendation Badge */}
+                    {isHighlyRecommended(item) && (
+                      <Box
                         sx={{
-                          ...itemCardDetailStyle,
-                          fontWeight:
-                            item.currentStock <= 0 ? "bold" : "normal",
-                          color:
-                            item.currentStock <= 0
-                              ? theme.palette.error.main
-                              : theme.palette.text.secondary,
+                          position: "absolute",
+                          top: 8,
+                          right: 8,
+                          backgroundColor: getRecommendationLevel(
+                            (item as RecommendedBarcodeScanResponse)
+                              .recommendationScore
+                          ).color,
+                          color: "white",
+                          px: 1,
+                          py: 0.5,
+                          borderRadius: 1,
+                          fontSize: "10px",
+                          fontWeight: "bold",
                         }}
                       >
-                        {item.currentStock}
+                        {getRecommendationLevel(
+                          (item as RecommendedBarcodeScanResponse)
+                            .recommendationScore
+                        ).label.toUpperCase()}
+                      </Box>
+                    )}
+
+                    <Radio
+                      checked={selectedItemId === item.itemStockId}
+                      value={item.itemStockId}
+                      name="selected-item-radio"
+                      slotProps={{ input: { "aria-label": item.itemName } }}
+                      size="small"
+                      sx={{ mt: 0.25 }}
+                    />
+
+                    <Box
+                      sx={{
+                        flexGrow: 1,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Typography sx={itemCardNameStyle}>
+                        {item.itemName}
                       </Typography>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <Typography sx={itemCardDetailLabelStyle}>
+                            Jumlah Stok: {/* cspell:disable-line */}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              ...itemCardDetailStyle,
+                              fontWeight:
+                                item.currentStock <= 0 ? "bold" : "normal",
+                              color:
+                                item.currentStock <= 0
+                                  ? theme.palette.error.main
+                                  : theme.palette.text.secondary,
+                            }}
+                          >
+                            {item.currentStock}
+                          </Typography>
+                        </Box>
+
+                        {/* Show recommendation score if available */}
+                        {useRecommendations &&
+                          "recommendationScore" in item && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                              }}
+                            >
+                              {renderScoreWithProgress(
+                                (item as RecommendedBarcodeScanResponse)
+                                  .recommendationScore
+                              )}
+                            </Box>
+                          )}
+                      </Box>
                     </Box>
-                  </Box>
-                </Paper>
-              ))}
+                  </Paper>
+                )
+              )}
             </Box>
           </Box>
         )}
 
-        {items.length === 0 && (
+        {/* Empty State */}
+        {!isLoading && currentItems.length === 0 && (
           <Box
             sx={{
               flexGrow: 1,
@@ -199,15 +462,20 @@ const ChooseItemPage: React.FC = () => {
               sx={{
                 fontFamily: robotoFontFamily,
                 color: theme.palette.text.secondary,
+                textAlign: "center",
               }}
             >
-              Tidak ada barang yang tersedia untuk dipilih.{" "}
-              {/* cspell:disable-line */}
+              {
+                useRecommendations
+                  ? "Tidak ada rekomendasi barang untuk barcode ini." /* cspell:disable-line */
+                  : "Tidak ada barang yang tersedia untuk dipilih." /* cspell:disable-line */
+              }
             </Typography>
           </Box>
         )}
 
-        {items.length > 0 && (
+        {/* Action Buttons */}
+        {!isLoading && currentItems.length > 0 && (
           <Box sx={{ pt: 2, mt: "auto" }}>
             <Box display="flex" gap={theme.spacing(1)}>
               <Button

@@ -2,6 +2,7 @@ import type { ApiResponse } from "../types/api";
 import type {
   BarcodeScanResponse,
   ItemStock,
+  RecommendedBarcodeScanResponse,
   ScanStockChangeRequest,
 } from "../types/item-stock";
 import { apiClient } from "./client";
@@ -105,6 +106,20 @@ export const fetchItemStockByBarcode = async (
   const response = await apiClient.get(`/item-stocks/barcode/${barcode}`);
 
   const result: ApiResponse<BarcodeScanResponse[]> = await response.json();
+
+  if (!response.ok) {
+    throw new Error(result.message);
+  }
+
+  return result.data || [];
+};
+
+export const fetchRecommendedItemStockByBarcode = async (
+  barcode: string
+): Promise<RecommendedBarcodeScanResponse[]> => {
+  const response = await apiClient.get(`/item-stocks/barcode/${barcode}/recommendation`);
+
+  const result: ApiResponse<RecommendedBarcodeScanResponse[]> = await response.json();
 
   if (!response.ok) {
     throw new Error(result.message);

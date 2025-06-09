@@ -24,3 +24,10 @@ export interface BarcodeScanResponse {
   itemName: string;
   currentStock: number;
 }
+
+export interface RecommendedBarcodeScanResponse {
+  itemStockId: string;
+  itemName: string;
+  currentStock: number;
+  recommendationScore: number;
+}
