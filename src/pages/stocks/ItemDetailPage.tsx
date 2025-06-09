@@ -165,7 +165,7 @@ const ItemDetailPage: React.FC = () => {
         <Header title="Error" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
           <Alert severity="error">
-            Gagal memuat detail barang:{" "}
+            Gagal memuat detail barang:
             {fetchItemError.message || "Kesalahan tidak diketahui"}
           </Alert>
         </Container>

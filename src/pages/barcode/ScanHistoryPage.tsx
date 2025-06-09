@@ -67,7 +67,11 @@ const ScanHistoryPage: React.FC = () => {
   } = useQuery<PaginatedHistoryResponse, Error>({
     queryKey: ["scanHistory", currentPage, rowsPerPage],
     queryFn: () =>
-      fetchScanHistory({ page: currentPage - 1, size: rowsPerPage, username: user?.username }),
+      fetchScanHistory({
+        page: currentPage - 1,
+        size: rowsPerPage,
+        username: user?.username,
+      }),
     placeholderData: (previousData) => previousData,
   });
 
@@ -243,7 +247,7 @@ const ScanHistoryPage: React.FC = () => {
                     mt: 4,
                   }}
                 >
-                  Tidak ada riwayat scan yang ditemukan.{" "}
+                  Tidak ada riwayat scan yang ditemukan.
                   {/* cspell:disable-line */}
                 </Typography>
               )}

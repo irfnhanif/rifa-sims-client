@@ -85,9 +85,9 @@ const NotFoundPage: React.FC = () => {
               lineHeight: 1.6,
             }}
           >
-            Halaman yang Anda cari tidak dapat ditemukan.{" "}
+            Halaman yang Anda cari tidak dapat ditemukan.
             {/* cspell:disable-line */}
-            Mungkin halaman tersebut telah dipindahkan atau dihapus.{" "}
+            Mungkin halaman tersebut telah dipindahkan atau dihapus.
             {/* cspell:disable-line */}
           </Typography>
 

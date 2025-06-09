@@ -242,7 +242,7 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading stocks:{" "}
+          Error loading stocks:
           {error instanceof Error ? error.message : "Unknown error"}
         </Alert>
       </Box>
@@ -568,23 +568,25 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
                               <BarChartIcon sx={{ fontSize: "16px" }} />
                             </IconButton>
                           </Tooltip>
-                          {isOwner && (<Tooltip title="Edit Stok">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleEditClick(stock.id)}
-                              sx={{
-                                padding: "8px",
-                                background: lightButtonBackground,
-                                borderRadius: "6px",
-                                color: iconActionColor,
-                                "&:hover": {
-                                  background: theme.palette.grey[300],
-                                },
-                              }}
-                            >
-                              <EditIcon sx={{ fontSize: "16px" }} />
-                            </IconButton>
-                          </Tooltip>)}
+                          {isOwner && (
+                            <Tooltip title="Edit Stok">
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditClick(stock.id)}
+                                sx={{
+                                  padding: "8px",
+                                  background: lightButtonBackground,
+                                  borderRadius: "6px",
+                                  color: iconActionColor,
+                                  "&:hover": {
+                                    background: theme.palette.grey[300],
+                                  },
+                                }}
+                              >
+                                <EditIcon sx={{ fontSize: "16px" }} />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                         </Box>
                       </TableCell>
                     </TableRow>

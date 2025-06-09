@@ -108,7 +108,7 @@ const ProfilePage: React.FC = () => {
         <Header title="Error" onBackClick={handleBackClick} />
         <Container sx={{ py: 3 }}>
           <Alert severity="error">
-            Gagal memuat profil pengguna: {error.message || "Unknown error"}{" "}
+            Gagal memuat profil pengguna: {error.message || "Unknown error"}
             {/* cspell:disable-line */}
           </Alert>
         </Container>
@@ -122,7 +122,7 @@ const ProfilePage: React.FC = () => {
       <Box
         sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
       >
-        <Header title="Tidak Ditemukan" onBackClick={handleBackClick} />{" "}
+        <Header title="Tidak Ditemukan" onBackClick={handleBackClick} />
         {/* cspell:disable-line */}
         <Container sx={{ py: 3 }}>
           <Alert severity="warning">

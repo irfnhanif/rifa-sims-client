@@ -418,7 +418,7 @@ const HomePage: React.FC = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          &copy; {new Date().getFullYear()} Rifa-SIMS.{" "}
+          &copy; {new Date().getFullYear()} Rifa-SIMS.
           {/* cspell:disable-line */}
           All rights reserved.
         </Typography>

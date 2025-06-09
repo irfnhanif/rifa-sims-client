@@ -206,7 +206,7 @@ const ItemListPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading items:{" "}
+          Error loading items:
           {error instanceof Error ? error.message : "Unknown error"}
         </Alert>
       </Box>

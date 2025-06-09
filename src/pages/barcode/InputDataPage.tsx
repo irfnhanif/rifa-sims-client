@@ -307,7 +307,7 @@ const InputDataPage: React.FC = () => {
           </Paper>
 
           <Box>
-            <Typography sx={labelStyles}>Jumlah</Typography>{" "}
+            <Typography sx={labelStyles}>Jumlah</Typography>
             {/* cspell:disable-line */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
@@ -372,7 +372,7 @@ const InputDataPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Jenis Stok</Typography>{" "}
+            <Typography sx={labelStyles}>Jenis Stok</Typography>
             {/* cspell:disable-line */}
             <ToggleButtonGroup
               value={formData.changeType}
@@ -511,7 +511,7 @@ const InputDataPage: React.FC = () => {
                 "&:hover": { backgroundColor: "#1E2532" },
               }}
             >
-              {mutation.isPending ? "Menyimpan..." : "Simpan"}{" "}
+              {mutation.isPending ? "Menyimpan..." : "Simpan"}
               {/* cspell:disable-line */}
             </Button>
           </Box>

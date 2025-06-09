@@ -96,7 +96,7 @@ const EditStockPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["itemStock", id] });
       queryClient.invalidateQueries({ queryKey: ["itemStocks"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
-      
+
       setErrors({
         form: "Stok barang berhasil diperbarui!",
       }); /* cspell:disable-line */
@@ -279,7 +279,7 @@ const EditStockPage: React.FC = () => {
         <Header title="Error" onBackClick={() => navigate(-1)} />
         <Container sx={{ py: 3 }}>
           <Alert severity="error">
-            Error memuat data stok barang:{" "}
+            Error memuat data stok barang:
             {fetchError.message || "Unknown error"}
           </Alert>
         </Container>
@@ -379,7 +379,7 @@ const EditStockPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Stok</Typography>{" "}
+            <Typography sx={labelStyles}>Stok</Typography>
             {/* cspell:disable-line */}
             <Box
               sx={{
@@ -452,7 +452,7 @@ const EditStockPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Batas Minimal</Typography>{" "}
+            <Typography sx={labelStyles}>Batas Minimal</Typography>
             {/* cspell:disable-line */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField

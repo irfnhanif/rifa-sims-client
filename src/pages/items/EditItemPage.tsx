@@ -255,7 +255,7 @@ const EditItemPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading item:{" "}
+          Error loading item:
           {fetchError instanceof Error ? fetchError.message : "Unknown error"}
         </Alert>
       </Box>

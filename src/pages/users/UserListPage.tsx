@@ -679,7 +679,7 @@ const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
               color: theme.palette.text.secondary,
             }}
           >
-            <strong>Alamat {/* cspell:disable-line */}:</strong>{" "}
+            <strong>Alamat {/* cspell:disable-line */}:</strong>
             {branchInfo.address || "Belum diisi" /* cspell:disable-line */}
           </Typography>
         </Box>
