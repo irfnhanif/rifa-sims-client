@@ -11,7 +11,10 @@ import {
   Switch,
   FormControlLabel,
   CircularProgress,
+  Popover,
+  IconButton,
 } from "@mui/material";
+import { InfoOutlined as InfoOutlinedIcon } from "@mui/icons-material";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecommendedItemStockByBarcode } from "../../api/stocks";
@@ -45,6 +48,9 @@ const ChooseItemPage: React.FC = () => {
     const saved = localStorage.getItem("useRecommendations");
     return saved ? JSON.parse(saved) : false;
   });
+  const [infoAnchorEl, setInfoAnchorEl] = useState<HTMLButtonElement | null>(
+    null
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -53,24 +59,22 @@ const ChooseItemPage: React.FC = () => {
     );
   }, [useRecommendations]);
 
-  // Helper function to get recommendation level and color
   const getRecommendationLevel = (score: number) => {
     if (score >= 0.8)
       return {
-        label: "Sangat Cocok",
+        label: "Sangat Cocok" /* cspell:disable-line */,
         color: "#4caf50",
-      }; /* cspell:disable-line */
+      };
     if (score >= 0.6)
       return { label: "Cocok", color: "#ff9800" }; /* cspell:disable-line */
     if (score >= 0.4)
       return { label: "Mungkin", color: "#2196f3" }; /* cspell:disable-line */
     return {
-      label: "Kurang Cocok",
+      label: "Kurang Cocok" /* cspell:disable-line */,
       color: "#757575",
-    }; /* cspell:disable-line */
+    };
   };
 
-  // Fetch recommended items when toggle is enabled
   const {
     data: recommendedItems,
     isLoading,
@@ -81,7 +85,6 @@ const ChooseItemPage: React.FC = () => {
     enabled: useRecommendations && !!barcode,
   });
 
-  // Use recommended items if toggle is on, otherwise use initial items
   const currentItems = useRecommendations
     ? recommendedItems || []
     : initialItems;
@@ -196,8 +199,18 @@ const ChooseItemPage: React.FC = () => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setUseRecommendations(event.target.checked);
-    setSelectedItemId(null); // Reset selection when switching modes
+    setSelectedItemId(null);
   };
+
+  const handleInfoClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setInfoAnchorEl(event.currentTarget);
+  };
+
+  const handleInfoClose = () => {
+    setInfoAnchorEl(null);
+  };
+
+  const infoOpen = Boolean(infoAnchorEl);
 
   const getItemCardBorderColor = (
     item: BarcodeScanResponse | RecommendedBarcodeScanResponse
@@ -206,12 +219,11 @@ const ChooseItemPage: React.FC = () => {
       return cardSelectedOutlineColor;
     }
 
-    // More nuanced color coding based on score ranges
     if (useRecommendations && "recommendationScore" in item) {
-      if (item.recommendationScore >= 0.8) return "#4caf50"; // Green for very high
-      if (item.recommendationScore >= 0.6) return "#ff9800"; // Orange for high
-      if (item.recommendationScore >= 0.4) return "#2196f3"; // Blue for medium
-      return cardOutlineColor; // Default for low
+      if (item.recommendationScore >= 0.8) return "#4caf50";
+      if (item.recommendationScore >= 0.6) return "#2196f3";
+      if (item.recommendationScore >= 0.4) return "#ff9800";
+      return cardOutlineColor;
     }
 
     return cardOutlineColor;
@@ -221,8 +233,7 @@ const ChooseItemPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Barcode tidak ditemukan. Silakan kembali dan scan ulang.{" "}
-          {/* cspell:disable-line */}
+          Barcode tidak ditemukan. Silakan kembali dan scan ulang. {/* cspell:disable-line */}
         </Alert>
       </Box>
     );
@@ -256,7 +267,6 @@ const ChooseItemPage: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        {/* Recommendation Toggle */}
         <Paper
           elevation={1}
           sx={{
@@ -267,32 +277,61 @@ const ChooseItemPage: React.FC = () => {
             alignItems: "center",
           }}
         >
-          <Box>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Mode Pencarian {/* cspell:disable-line */}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {
-                useRecommendations
-                  ? "Menampilkan barang berdasarkan rekomendasi sistem" /* cspell:disable-line */
-                  : "Menampilkan semua barang dengan barcode yang sama" /* cspell:disable-line */
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={useRecommendations}
+                  onChange={handleRecommendationToggle}
+                  color="primary"
+                />
               }
-            </Typography>
+              label="Gunakan Rekomendasi" /* cspell:disable-line */
+              labelPlacement="end"
+              sx={{ m: 0 }}
+            />
+            <IconButton
+              size="small"
+              sx={{ p: 0.5, ml: 0.5 }}
+              onClick={handleInfoClick}
+            >
+              <InfoOutlinedIcon sx={{ fontSize: "1rem", color: "grey.500" }} />
+            </IconButton>
           </Box>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={useRecommendations}
-                onChange={handleRecommendationToggle}
-                color="primary"
-              />
-            }
-            label="Gunakan Rekomendasi" /* cspell:disable-line */
-            labelPlacement="start"
-          />
         </Paper>
 
-        {/* Loading State */}
+        <Popover
+          open={infoOpen}
+          anchorEl={infoAnchorEl}
+          onClose={handleInfoClose}
+          anchorOrigin={{
+            vertical: "bottom",
+            horizontal: "left",
+          }}
+          transformOrigin={{
+            vertical: "top",
+            horizontal: "left",
+          }}
+          slotProps={{
+            paper: {
+              sx: {
+                p: 2,
+                maxWidth: 300,
+                mt: 0.5,
+              },
+            },
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+            {useRecommendations ? "Mode Rekomendasi" : "Mode Standar"} {/* cspell:disable-line */}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {useRecommendations
+              ? "Menampilkan barang berdasarkan rekomendasi sistem dengan skor relevansi dan prioritas berdasarkan pola penggunaan sebelumnya." /* cspell:disable-line */
+              : "Menampilkan semua barang dengan barcode yang sama tanpa prioritas khusus."} {/* cspell:disable-line */}
+          </Typography>
+        </Popover>
+
         {isLoading && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
             <CircularProgress />
@@ -302,23 +341,18 @@ const ChooseItemPage: React.FC = () => {
           </Box>
         )}
 
-        {/* Error State */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            Gagal memuat rekomendasi. Menggunakan hasil pencarian standar.{" "}
-            {/* cspell:disable-line */}
+            Gagal memuat rekomendasi. Menggunakan hasil pencarian standar.{/* cspell:disable-line */}
           </Alert>
         )}
 
-        {/* No Items Alert */}
         {!isLoading && currentItems.length === 0 && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Tidak ada barang yang tersedia untuk dipilih.{" "}
-            {/* cspell:disable-line */}
+            Tidak ada barang yang tersedia untuk dipilih. {/* cspell:disable-line */}
           </Alert>
         )}
 
-        {/* Items List */}
         {!isLoading && currentItems.length > 0 && (
           <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 1 }}>
             <Box display="flex" flexDirection="column" gap={theme.spacing(1.5)}>
@@ -343,7 +377,6 @@ const ChooseItemPage: React.FC = () => {
                       position: "relative",
                     }}
                   >
-                    {/* Recommendation Badge */}
                     {isHighlyRecommended(item) && (
                       <Box
                         sx={{
@@ -423,7 +456,6 @@ const ChooseItemPage: React.FC = () => {
                           </Typography>
                         </Box>
 
-                        {/* Show recommendation score if available */}
                         {useRecommendations &&
                           "recommendationScore" in item && (
                             <Box
@@ -448,7 +480,6 @@ const ChooseItemPage: React.FC = () => {
           </Box>
         )}
 
-        {/* Empty State */}
         {!isLoading && currentItems.length === 0 && (
           <Box
             sx={{
@@ -474,7 +505,6 @@ const ChooseItemPage: React.FC = () => {
           </Box>
         )}
 
-        {/* Action Buttons */}
         {!isLoading && currentItems.length > 0 && (
           <Box sx={{ pt: 2, mt: "auto" }}>
             <Box display="flex" gap={theme.spacing(1)}>
