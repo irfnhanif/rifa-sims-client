@@ -2,8 +2,10 @@ import type { StockChangeType } from "./stock-change-type";
 
 export interface StockAuditLog {
   id: string;
+  itemId: string;
   itemName: string;
   itemBarcode: string;
+  userId: string;
   username: string;
   type: StockChangeType;
   oldStock: number;
@@ -13,11 +15,11 @@ export interface StockAuditLog {
 }
 
 export interface StockChangeHistoryParam {
-  itemName: string
+  itemName: string;
   username: string;
   changeTypes: StockChangeType[];
-  fromDate: string
-  toDate: string
+  fromDate: string;
+  toDate: string;
   page: number;
   size: number;
   sortBy: string;
@@ -32,7 +34,7 @@ export interface ScanHistoryParam {
   size: number;
   sortBy: string;
   sortDirection: "ASC" | "DESC";
-  deleted: boolean
+  deleted: boolean;
 }
 
 export interface PaginatedHistoryResponse {

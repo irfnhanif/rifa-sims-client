@@ -41,7 +41,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 
-import type { StockAuditLog, StockChangeHistoryParam } from "../../types/stock-audit-log";
+import type {
+  StockAuditLog,
+  StockChangeHistoryParam,
+} from "../../types/stock-audit-log";
 import { StockChangeType } from "../../types/stock-change-type";
 import { fetchStockAuditLogs } from "../../api/stock-audit-logs";
 
@@ -56,14 +59,9 @@ const StockChangeHistoryPage: React.FC = () => {
   const primaryColorHover = "#1E2532";
   const lightButtonBackground = "#EDF0F7";
 
-  // Filter collapse state
   const [filterExpanded, setFilterExpanded] = useState(false);
-
-  // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Filter states
   const [itemNameSearch, setItemNameSearch] = useState("");
   const [usernameSearch, setUsernameSearch] = useState("");
   const [selectedChangeTypes, setSelectedChangeTypes] = useState<string[]>([]);
@@ -72,8 +70,9 @@ const StockChangeHistoryPage: React.FC = () => {
   const [sortBy, setSortBy] = useState("timestamp");
   const [sortDirection, setSortDirection] = useState<"ASC" | "DESC">("DESC");
 
-  // Applied filters for API
-  const [appliedFilters, setAppliedFilters] = useState<Partial<StockChangeHistoryParam>>({
+  const [appliedFilters, setAppliedFilters] = useState<
+    Partial<StockChangeHistoryParam>
+  >({
     page: 0,
     size: 10,
     sortBy: "timestamp",
@@ -90,8 +89,7 @@ const StockChangeHistoryPage: React.FC = () => {
     queryFn: () => fetchStockAuditLogs(appliedFilters),
   });
 
-  // Check if any filters are active
-  const hasActiveFilters = 
+  const hasActiveFilters =
     itemNameSearch.trim() !== "" ||
     usernameSearch.trim() !== "" ||
     selectedChangeTypes.length > 0 ||
@@ -99,6 +97,53 @@ const StockChangeHistoryPage: React.FC = () => {
     toDate !== null ||
     sortBy !== "timestamp" ||
     sortDirection !== "DESC";
+
+  // Helper functions to determine search type
+  const isPartialItemNameSearch = (): boolean => {
+    return (
+      itemNameSearch.trim() !== "" &&
+      !auditLogs.some(
+        (log: StockAuditLog) =>
+          log.itemName.toLowerCase() === itemNameSearch.trim().toLowerCase()
+      )
+    );
+  };
+
+  const isPartialUsernameSearch = (): boolean => {
+    return (
+      usernameSearch.trim() !== "" &&
+      !auditLogs.some(
+        (log: StockAuditLog) =>
+          log.username.toLowerCase() === usernameSearch.trim().toLowerCase()
+      )
+    );
+  };
+
+  // Helper function to check if names are outdated (only for exact matches)
+  const isItemNameOutdated = (logItemName: string): boolean => {
+    if (!itemNameSearch.trim() || isPartialItemNameSearch()) return false;
+    return logItemName.toLowerCase() !== itemNameSearch.trim().toLowerCase();
+  };
+
+  const isUsernameOutdated = (logUsername: string): boolean => {
+    if (!usernameSearch.trim() || isPartialUsernameSearch()) return false;
+    return logUsername.toLowerCase() !== usernameSearch.trim().toLowerCase();
+  };
+
+  // Helper function to format names with asterisk if outdated
+  const formatItemNameWithMarker = (logItemName: string): string => {
+    return isItemNameOutdated(logItemName) ? `${logItemName}*` : logItemName;
+  };
+
+  const formatUsernameWithMarker = (logUsername: string): string => {
+    return isUsernameOutdated(logUsername) ? `${logUsername}*` : logUsername;
+  };
+
+  // Check if any rows have outdated names
+  const hasOutdatedNames = auditLogs.some(
+    (log: StockAuditLog) =>
+      isItemNameOutdated(log.itemName) || isUsernameOutdated(log.username)
+  );
 
   const handleBackClick = () => {
     navigate(-1);
@@ -110,12 +155,14 @@ const StockChangeHistoryPage: React.FC = () => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
-    const newFilters = { 
-      ...appliedFilters, 
-      size: newRowsPerPage, 
-      page: 0 
+    const newFilters = {
+      ...appliedFilters,
+      size: newRowsPerPage,
+      page: 0,
     };
     setAppliedFilters(newFilters);
     setRowsPerPage(newRowsPerPage);
@@ -124,7 +171,9 @@ const StockChangeHistoryPage: React.FC = () => {
 
   const handleChangeTypeChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
-    setSelectedChangeTypes(typeof value === 'string' ? value.split(',') : value);
+    setSelectedChangeTypes(
+      typeof value === "string" ? value.split(",") : value
+    );
   };
 
   const handleApplyFilters = () => {
@@ -153,8 +202,7 @@ const StockChangeHistoryPage: React.FC = () => {
 
     setAppliedFilters(filters);
     setPage(0);
-    
-    // Auto-collapse on mobile after applying filters
+
     if (window.innerWidth < 768) {
       setFilterExpanded(false);
     }
@@ -168,14 +216,14 @@ const StockChangeHistoryPage: React.FC = () => {
     setToDate(null);
     setSortBy("timestamp");
     setSortDirection("DESC");
-    
+
     const defaultFilters = {
       page: 0,
       size: rowsPerPage,
       sortBy: "timestamp",
       sortDirection: "DESC" as const,
     };
-    
+
     setAppliedFilters(defaultFilters);
     setPage(0);
   };
@@ -213,7 +261,16 @@ const StockChangeHistoryPage: React.FC = () => {
     }
   };
 
-  const getStockChangeTypeColor = (type: string): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+  const getStockChangeTypeColor = (
+    type: string
+  ):
+    | "default"
+    | "primary"
+    | "secondary"
+    | "error"
+    | "info"
+    | "success"
+    | "warning" => {
     switch (type) {
       case StockChangeType.IN:
         return "success";
@@ -232,7 +289,6 @@ const StockChangeHistoryPage: React.FC = () => {
     }
   };
 
-  // Get all available stock change types for the filter
   const getAllStockChangeTypes = () => {
     return Object.values(StockChangeType);
   };
@@ -289,7 +345,6 @@ const StockChangeHistoryPage: React.FC = () => {
           sx={{ flexGrow: 1 }}
         >
           <Box sx={{ px: { xs: 2, sm: 3 }, py: { xs: 2, sm: 3 } }}>
-            {/* Filter Section */}
             <Paper
               elevation={1}
               sx={{
@@ -298,7 +353,6 @@ const StockChangeHistoryPage: React.FC = () => {
                 overflow: "hidden",
               }}
             >
-              {/* Filter Header - Always Visible */}
               <Box
                 sx={{
                   p: { xs: 2, sm: 3 },
@@ -333,7 +387,7 @@ const StockChangeHistoryPage: React.FC = () => {
                     />
                   )}
                 </Typography>
-                
+
                 <IconButton
                   onClick={toggleFilterExpanded}
                   sx={{
@@ -346,7 +400,6 @@ const StockChangeHistoryPage: React.FC = () => {
                 </IconButton>
               </Box>
 
-              {/* Collapsible Filter Content */}
               <Collapse in={filterExpanded} timeout="auto" unmountOnExit>
                 <Box sx={{ p: { xs: 2, sm: 3 }, pt: 2 }}>
                   <Box
@@ -357,10 +410,13 @@ const StockChangeHistoryPage: React.FC = () => {
                       alignItems: "stretch",
                     }}
                   >
-                    {/* Item Name Search */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
@@ -375,16 +431,21 @@ const StockChangeHistoryPage: React.FC = () => {
                           "& .MuiOutlinedInput-root": {
                             "& fieldset": { borderColor: "#CBD2E0" },
                             "&:hover fieldset": { borderColor: primaryColor },
-                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                            "&.Mui-focused fieldset": {
+                              borderColor: primaryColor,
+                            },
                           },
                         }}
                       />
                     </Box>
 
-                    {/* Username Search */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
@@ -399,28 +460,44 @@ const StockChangeHistoryPage: React.FC = () => {
                           "& .MuiOutlinedInput-root": {
                             "& fieldset": { borderColor: "#CBD2E0" },
                             "&:hover fieldset": { borderColor: primaryColor },
-                            "&.Mui-focused fieldset": { borderColor: primaryColor },
+                            "&.Mui-focused fieldset": {
+                              borderColor: primaryColor,
+                            },
                           },
                         }}
                       />
                     </Box>
 
-                    {/* Change Types Multi-Select */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
                       <FormControl fullWidth size="small">
-                        <InputLabel>Jenis Perubahan</InputLabel> {/* cspell:disable-line */}
+                        <InputLabel>Jenis Perubahan</InputLabel>{" "}
+                        {/* cspell:disable-line */}
                         <Select
                           multiple
                           value={selectedChangeTypes}
                           onChange={handleChangeTypeChange}
-                          input={<OutlinedInput label="Jenis Perubahan" />}
+                          input={
+                            <OutlinedInput
+                              label="Jenis Perubahan" /* cspell:disable-line */
+                            />
+                          }
                           renderValue={(selected) => (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.5,
+                              }}
+                            >
                               {selected.map((value) => (
                                 <Chip
                                   key={value}
@@ -431,9 +508,15 @@ const StockChangeHistoryPage: React.FC = () => {
                             </Box>
                           )}
                           sx={{
-                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#CBD2E0",
+                            },
+                            "&:hover .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
                           }}
                         >
                           {getAllStockChangeTypes().map((type) => (
@@ -445,37 +528,53 @@ const StockChangeHistoryPage: React.FC = () => {
                       </FormControl>
                     </Box>
 
-                    {/* Sort By */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
                       <FormControl fullWidth size="small">
-                        <InputLabel>Urut Berdasarkan</InputLabel> {/* cspell:disable-line */}
+                        <InputLabel>Urut Berdasarkan</InputLabel>{" "}
+                        {/* cspell:disable-line */}
                         <Select
                           value={sortBy}
                           onChange={(e) => setSortBy(e.target.value)}
                           label="Urut Berdasarkan" /* cspell:disable-line */
                           sx={{
-                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#CBD2E0",
+                            },
+                            "&:hover .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
                           }}
                         >
-                          <MenuItem value="timestamp">Waktu</MenuItem> {/* cspell:disable-line */}
-                          <MenuItem value="itemName">Nama Barang</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="timestamp">Waktu</MenuItem>{" "}
+                          {/* cspell:disable-line */}
+                          <MenuItem value="itemName">Nama Barang</MenuItem>{" "}
+                          {/* cspell:disable-line */}
                           <MenuItem value="username">Username</MenuItem>
-                          <MenuItem value="type">Jenis</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="type">Jenis</MenuItem>{" "}
+                          {/* cspell:disable-line */}
                         </Select>
                       </FormControl>
                     </Box>
 
-                    {/* From Date */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
@@ -490,8 +589,12 @@ const StockChangeHistoryPage: React.FC = () => {
                             sx: {
                               "& .MuiOutlinedInput-root": {
                                 "& fieldset": { borderColor: "#CBD2E0" },
-                                "&:hover fieldset": { borderColor: primaryColor },
-                                "&.Mui-focused fieldset": { borderColor: primaryColor },
+                                "&:hover fieldset": {
+                                  borderColor: primaryColor,
+                                },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: primaryColor,
+                                },
                               },
                             },
                           },
@@ -499,10 +602,13 @@ const StockChangeHistoryPage: React.FC = () => {
                       />
                     </Box>
 
-                    {/* To Date */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
@@ -517,8 +623,12 @@ const StockChangeHistoryPage: React.FC = () => {
                             sx: {
                               "& .MuiOutlinedInput-root": {
                                 "& fieldset": { borderColor: "#CBD2E0" },
-                                "&:hover fieldset": { borderColor: primaryColor },
-                                "&.Mui-focused fieldset": { borderColor: primaryColor },
+                                "&:hover fieldset": {
+                                  borderColor: primaryColor,
+                                },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: primaryColor,
+                                },
                               },
                             },
                           },
@@ -526,35 +636,53 @@ const StockChangeHistoryPage: React.FC = () => {
                       />
                     </Box>
 
-                    {/* Sort Direction */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
                       <FormControl fullWidth size="small">
-                        <InputLabel>Arah Urutan</InputLabel> {/* cspell:disable-line */}
+                        <InputLabel>Arah Urutan</InputLabel>{" "}
+                        {/* cspell:disable-line */}
                         <Select
                           value={sortDirection}
-                          onChange={(e) => setSortDirection(e.target.value as "ASC" | "DESC")}
+                          onChange={(e) =>
+                            setSortDirection(e.target.value as "ASC" | "DESC")
+                          }
                           label="Arah Urutan" /* cspell:disable-line */
                           sx={{
-                            "& .MuiOutlinedInput-notchedOutline": { borderColor: "#CBD2E0" },
-                            "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
-                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: primaryColor },
+                            "& .MuiOutlinedInput-notchedOutline": {
+                              borderColor: "#CBD2E0",
+                            },
+                            "&:hover .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
+                            "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                              borderColor: primaryColor,
+                            },
                           }}
                         >
-                          <MenuItem value="DESC">Terbaru ke Terlama</MenuItem> {/* cspell:disable-line */}
-                          <MenuItem value="ASC">Terlama ke Terbaru</MenuItem> {/* cspell:disable-line */}
+                          <MenuItem value="DESC">Terbaru ke Terlama</MenuItem>{" "}
+                          {/* cspell:disable-line */}
+                          <MenuItem value="ASC">
+                            Terlama ke Terbaru {/* cspell:disable-line */}
+                          </MenuItem>
                         </Select>
                       </FormControl>
                     </Box>
 
-                    {/* Action Buttons */}
                     <Box
                       sx={{
-                        flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 8px)", md: "1 1 calc(25% - 12px)" },
+                        flex: {
+                          xs: "1 1 100%",
+                          sm: "1 1 calc(50% - 8px)",
+                          md: "1 1 calc(25% - 12px)",
+                        },
                         minWidth: { xs: "100%", sm: "200px", md: "180px" },
                       }}
                     >
@@ -574,7 +702,7 @@ const StockChangeHistoryPage: React.FC = () => {
                         >
                           Cari {/* cspell:disable-line */}
                         </Button>
-                        <Tooltip title="Reset Filter"> 
+                        <Tooltip title="Reset Filter">
                           <IconButton
                             onClick={handleClearFilters}
                             sx={{
@@ -582,7 +710,9 @@ const StockChangeHistoryPage: React.FC = () => {
                               background: lightButtonBackground,
                               borderRadius: "6px",
                               color: primaryColor,
-                              "&:hover": { background: theme.palette.grey[300] },
+                              "&:hover": {
+                                background: theme.palette.grey[300],
+                              },
                             }}
                           >
                             <ClearIcon />
@@ -596,7 +726,9 @@ const StockChangeHistoryPage: React.FC = () => {
                               background: lightButtonBackground,
                               borderRadius: "6px",
                               color: primaryColor,
-                              "&:hover": { background: theme.palette.grey[300] },
+                              "&:hover": {
+                                background: theme.palette.grey[300],
+                              },
                             }}
                           >
                             <RefreshIcon />
@@ -609,7 +741,6 @@ const StockChangeHistoryPage: React.FC = () => {
               </Collapse>
             </Paper>
 
-            {/* Data Table */}
             <TableContainer
               component={Paper}
               sx={{ borderRadius: "4px", outline: `2px solid #CBD2E0` }}
@@ -706,7 +837,7 @@ const StockChangeHistoryPage: React.FC = () => {
                             verticalAlign: "top",
                           }}
                         >
-                          {log.itemName}
+                          {formatItemNameWithMarker(log.itemName)}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -715,7 +846,7 @@ const StockChangeHistoryPage: React.FC = () => {
                             verticalAlign: "top",
                           }}
                         >
-                          {log.username}
+                          {formatUsernameWithMarker(log.username)}
                         </TableCell>
                         <TableCell
                           sx={{
@@ -774,7 +905,8 @@ const StockChangeHistoryPage: React.FC = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                        Tidak ada data riwayat perubahan stok {/* cspell:disable-line */}
+                        Tidak ada data riwayat perubahan stok{" "}
+                        {/* cspell:disable-line */}
                       </TableCell>
                     </TableRow>
                   )}
@@ -782,19 +914,37 @@ const StockChangeHistoryPage: React.FC = () => {
               </Table>
             </TableContainer>
 
-            {/* Pagination */}
+            {hasOutdatedNames && auditLogs.length > 0 && (
+              <Box sx={{ mt: 2, px: 1 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    fontStyle: "italic",
+                    fontFamily: "Roboto, sans-serif",
+                  }}
+                >
+                  * digunakan untuk menandakan nama barang atau nama pengguna
+                  lama. {/* cspell:disable-line */}
+                </Typography>
+              </Box>
+            )}
+
             {auditLogs.length > 0 && (
               <TablePagination
                 rowsPerPageOptions={[5, 10, 15, 25]}
                 component="div"
-                count={auditLogs.length} // Note: You might want to get total count from API
+                count={auditLogs.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 labelRowsPerPage="Baris per halaman:" /* cspell:disable-line */
-                labelDisplayedRows={({ from, to, count }) =>
-                  `${from}-${to} dari ${count !== -1 ? count : `lebih dari ${to}`}` /* cspell:disable-line */
+                labelDisplayedRows={
+                  ({ from, to, count }) =>
+                    `${from}-${to} dari ${
+                      count !== -1 ? count : `lebih dari ${to}`
+                    }` /* cspell:disable-line */
                 }
                 sx={{
                   mt: 2,
