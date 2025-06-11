@@ -61,7 +61,7 @@ const InputDataPage: React.FC = () => {
   const lightButtonBackground = "#EDF0F7";
 
   const [formData, setFormData] = useState<FormData>({
-    amount: 1,
+    amount: "",
     changeType: "IN",
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -74,6 +74,7 @@ const InputDataPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["itemStock", id] });
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+      queryClient.invalidateQueries({ queryKey: ["recommendItems"] });
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
@@ -100,7 +101,7 @@ const InputDataPage: React.FC = () => {
     if (value === "" || /^[0-9\b]+$/.test(value)) {
       setFormData((prev) => ({
         ...prev,
-        amount: value === "" ? "" : Number(value),
+        amount: value,
       }));
       if (errors.amount) {
         setErrors((prev) => ({ ...prev, amount: undefined, form: undefined }));
@@ -110,7 +111,7 @@ const InputDataPage: React.FC = () => {
 
   const handleQuantityButtons = (delta: number) => {
     setFormData((prev) => {
-      const currentValue = Number(prev.amount) || 0;
+      const currentValue = Number(prev.amount) || 1;
       const newValue = Math.max(1, currentValue + delta);
       return { ...prev, amount: newValue };
     });
@@ -317,7 +318,7 @@ const InputDataPage: React.FC = () => {
                 name="amount"
                 value={formData.amount}
                 onChange={(e) => handleNumericChange(e.target.value)}
-                placeholder="1"
+                placeholder="Masukkan jumlah (minimal 1)" /* cspell:disable-line */
                 disabled={mutation.isPending}
                 error={!!errors.amount}
                 helperText={errors.amount || ""}
