@@ -131,7 +131,6 @@ const App = () => {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
-        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </AuthProvider>
     </QueryClientProvider>
   );

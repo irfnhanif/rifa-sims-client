@@ -83,6 +83,10 @@ const ChooseItemPage: React.FC = () => {
     queryKey: ["recommendedItems", barcode],
     queryFn: () => fetchRecommendedItemStockByBarcode(barcode!),
     enabled: useRecommendations && !!barcode,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   const currentItems = useRecommendations
@@ -139,7 +143,7 @@ const ChooseItemPage: React.FC = () => {
         >
           <Box
             sx={{
-              width: 40,
+              width: 80,
               height: 4,
               backgroundColor: "#e0e0e0",
               borderRadius: 2,
@@ -155,16 +159,7 @@ const ChooseItemPage: React.FC = () => {
               }}
             />
           </Box>
-          <Typography
-            sx={{
-              ...itemCardDetailStyle,
-              fontWeight: "600",
-              color: color,
-              fontSize: "10px",
-            }}
-          >
-            {label}
-          </Typography>
+          
         </Box>
       </Box>
     );
@@ -220,10 +215,9 @@ const ChooseItemPage: React.FC = () => {
     }
 
     if (useRecommendations && "recommendationScore" in item) {
-      if (item.recommendationScore >= 0.8) return "#4caf50";
-      if (item.recommendationScore >= 0.6) return "#2196f3";
-      if (item.recommendationScore >= 0.4) return "#ff9800";
-      return cardOutlineColor;
+      // Use the same color logic as getRecommendationLevel
+      const { color } = getRecommendationLevel(item.recommendationScore);
+      return color;
     }
 
     return cardOutlineColor;

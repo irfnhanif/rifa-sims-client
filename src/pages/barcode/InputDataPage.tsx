@@ -75,6 +75,7 @@ const InputDataPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
       queryClient.invalidateQueries({ queryKey: ["recommendItems"] });
+      
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
