@@ -52,6 +52,15 @@ interface ConfirmDeleteDialogProps {
   contentText?: string;
 }
 
+const formatRupiah = (amount: number): string => {
+  return `Rp${amount.toLocaleString("id-ID")}`;
+};
+
+const formatPercentage = (value: number): string => {
+  const formatted = value.toFixed(2).replace(".", ",");
+  return `${formatted.replace(/,00$/, "")}%`;
+};
+
 const ItemListPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -354,7 +363,7 @@ const ItemListPage: React.FC = () => {
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: isOwner ? "30%" : "40%",
+                      width: isOwner ? "18%" : "22%",
                     }}
                   >
                     Nama Barang {/* cspell:disable-line */}
@@ -365,7 +374,7 @@ const ItemListPage: React.FC = () => {
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
                       borderRight: `1px solid #CBD2E0`,
-                      width: isOwner ? "25%" : "30%",
+                      width: isOwner ? "12%" : "15%",
                     }}
                   >
                     Barcode
@@ -375,11 +384,44 @@ const ItemListPage: React.FC = () => {
                       fontWeight: "bold",
                       color: primaryColor,
                       fontFamily: "Roboto, sans-serif",
-                      borderRight: isOwner ? `1px solid #CBD2E0` : "none",
-                      width: isOwner ? "30%" : "30%",
+                      borderRight: `1px solid #CBD2E0`,
+                      width: isOwner ? "15%" : "18%",
                     }}
                   >
                     Deskripsi {/* cspell:disable-line */}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      color: primaryColor,
+                      fontFamily: "Roboto, sans-serif",
+                      borderRight: `1px solid #CBD2E0`,
+                      width: isOwner ? "12%" : "15%",
+                    }}
+                  >
+                    Harga Grosir {/* cspell:disable-line */}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      color: primaryColor,
+                      fontFamily: "Roboto, sans-serif",
+                      borderRight: `1px solid #CBD2E0`,
+                      width: isOwner ? "12%" : "15%",
+                    }}
+                  >
+                    Harga Eceran {/* cspell:disable-line */}
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      fontWeight: "bold",
+                      color: primaryColor,
+                      fontFamily: "Roboto, sans-serif",
+                      borderRight: isOwner ? `1px solid #CBD2E0` : "none",
+                      width: isOwner ? "11%" : "15%",
+                    }}
+                  >
+                    Margin Keuntungan {/* cspell:disable-line */}
                   </TableCell>
                   {isOwner && (
                     <TableCell
@@ -388,7 +430,7 @@ const ItemListPage: React.FC = () => {
                         fontWeight: "bold",
                         color: primaryColor,
                         fontFamily: "Roboto, sans-serif",
-                        width: "15%",
+                        width: "20%",
                       }}
                     >
                       Aksi {/* cspell:disable-line */}
@@ -423,12 +465,39 @@ const ItemListPage: React.FC = () => {
                       <TableCell
                         sx={{
                           fontFamily: "Roboto, sans-serif",
-                          borderRight: isOwner ? `1px solid #CBD2E0` : "none",
+                          borderRight: `1px solid #CBD2E0`,
                           whiteSpace: "pre-line",
                           verticalAlign: "top",
                         }}
                       >
                         {item.description || "-"}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: "Roboto, sans-serif",
+                          borderRight: `1px solid #CBD2E0`,
+                          verticalAlign: "top",
+                        }}
+                      >
+                        {formatRupiah(item.wholesalePrice)}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: "Roboto, sans-serif",
+                          borderRight: `1px solid #CBD2E0`,
+                          verticalAlign: "top",
+                        }}
+                      >
+                        {formatRupiah(item.retailPrice)}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontFamily: "Roboto, sans-serif",
+                          borderRight: isOwner ? `1px solid #CBD2E0` : "none",
+                          verticalAlign: "top",
+                        }}
+                      >
+                        {formatPercentage(item.profitPercentage)}
                       </TableCell>
                       {isOwner && (
                         <TableCell align="center" sx={{ verticalAlign: "top" }}>
@@ -483,7 +552,7 @@ const ItemListPage: React.FC = () => {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={isOwner ? 4 : 3}
+                      colSpan={isOwner ? 7 : 6}
                       align="center"
                       sx={{ py: 3 }}
                     >

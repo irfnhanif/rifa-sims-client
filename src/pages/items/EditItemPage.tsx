@@ -5,9 +5,11 @@ import {
   Typography,
   TextField,
   Button,
+  IconButton,
   useTheme,
   Alert,
   CircularProgress,
+  InputAdornment,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +20,8 @@ import Footer from "../../components/Footer";
 import type { Item } from "../../types/item";
 import { fetchItemById, updateItem } from "../../api/items";
 
+import RemoveIcon from "@mui/icons-material/RemoveCircleOutline";
+import AddIcon from "@mui/icons-material/AddCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
 
 interface FormData {
@@ -25,12 +29,18 @@ interface FormData {
   name: string;
   description: string;
   barcode: string;
+  wholesalePrice: number | string;
+  retailPrice: number | string;
+  profitPercentage: number | string;
 }
 
 interface FormErrors {
   name?: string;
   description?: string;
   barcode?: string;
+  wholesalePrice?: string;
+  retailPrice?: string;
+  profitPercentage?: string;
   form?: string;
 }
 
@@ -49,11 +59,43 @@ const EditItemPage: React.FC = () => {
     name: "",
     description: "",
     barcode: "",
+    wholesalePrice: "",
+    retailPrice: "",
+    profitPercentage: "",
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const SUCCESS_MESSAGE = "berhasil";
+  const SUCCESS_MESSAGE = "berhasil"; /* cspell:disable-line */
+
+  const formatCurrency = (value: number | string): string => {
+    const numValue =
+      typeof value === "string"
+        ? parseFloat(value.replace(/[^\d]/g, ""))
+        : value;
+    if (isNaN(numValue) || numValue === 0) return "";
+    return numValue.toLocaleString("id-ID");
+  };
+
+  const parseCurrency = (value: string): number => {
+    const cleanValue = value.replace(/[^\d]/g, "");
+    return cleanValue ? parseInt(cleanValue, 10) : 0;
+  };
+
+  const calculateProfitPercentage = (
+    wholesale: number,
+    retail: number
+  ): number => {
+    if (wholesale <= 0) return 0;
+    return ((retail - wholesale) / wholesale) * 100;
+  };
+
+  const calculateRetailPrice = (
+    wholesale: number,
+    profitPercentage: number
+  ): number => {
+    return wholesale + (wholesale * profitPercentage) / 100;
+  };
 
   const {
     data: item,
@@ -72,6 +114,9 @@ const EditItemPage: React.FC = () => {
         name: item.name || "",
         description: item.description || "",
         barcode: item.barcode || "",
+        wholesalePrice: item.wholesalePrice || "",
+        retailPrice: item.retailPrice || "",
+        profitPercentage: item.profitPercentage || "",
       });
     }
   }, [item]);
@@ -84,53 +129,43 @@ const EditItemPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["item", id] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
 
-      setErrors({ form: "Barang berhasil diperbarui!" });
+      setErrors({
+        form: "Barang berhasil diperbarui!" /* cspell:disable-line */,
+      });
 
       setTimeout(() => {
         navigate(-1);
       }, 1000);
     },
     onError: (error: any) => {
-      console.log("Error received:", error);
-
       const serverFieldErrors: FormErrors = {};
 
       const fieldMapping: Record<string, keyof FormErrors> = {
         name: "name",
         description: "description",
         barcode: "barcode",
+        wholesalePrice: "wholesalePrice",
+        retailPrice: "retailPrice",
+        profitPercentage: "profitPercentage",
       };
 
       if (error.errors && Array.isArray(error.errors)) {
         error.errors.forEach((errStr: string) => {
-          console.log("Processing error:", errStr);
-
           const colonIndex = errStr.indexOf(":");
           if (colonIndex !== -1) {
             const serverFieldKey = errStr.substring(0, colonIndex).trim();
             const errorMessage = errStr.substring(colonIndex + 1).trim();
 
-            console.log(
-              `Server field: "${serverFieldKey}", Message: "${errorMessage}"`
-            );
-
             const formFieldKey = fieldMapping[serverFieldKey];
 
             if (formFieldKey) {
               serverFieldErrors[formFieldKey] = errorMessage;
-              console.log(
-                `Mapped ${serverFieldKey} -> ${formFieldKey}: ${errorMessage}`
-              );
             } else {
-              console.log(
-                `Unmapped field ${serverFieldKey}, adding to form error`
-              );
               serverFieldErrors.form =
                 (serverFieldErrors.form ? serverFieldErrors.form + "; " : "") +
                 errStr;
             }
           } else {
-            console.log(`No colon found in error: ${errStr}`);
             serverFieldErrors.form =
               (serverFieldErrors.form ? serverFieldErrors.form + "; " : "") +
               errStr;
@@ -145,7 +180,7 @@ const EditItemPage: React.FC = () => {
           Object.keys(serverFieldErrors).length === 0 || serverFieldErrors.form
             ? serverFieldErrors.form ||
               error.message ||
-              "Terjadi kesalahan pada server."
+              "Terjadi kesalahan pada server." /* cspell:disable-line */
             : serverFieldErrors.form,
       }));
     },
@@ -164,13 +199,168 @@ const EditItemPage: React.FC = () => {
     }
   };
 
+  const handleCurrencyChange = (
+    name: keyof Pick<FormData, "wholesalePrice" | "retailPrice">,
+    value: string
+  ) => {
+    const cleanValue = value.replace(/[^\d]/g, "");
+    if (cleanValue === "" || /^[0-9]+$/.test(cleanValue)) {
+      const numericValue = cleanValue ? parseInt(cleanValue, 10) : "";
+
+      setFormData((prev) => {
+        const newData = { ...prev, [name]: numericValue };
+
+        const wholesalePrice =
+          name === "wholesalePrice"
+            ? Number(numericValue) || 0
+            : typeof prev.wholesalePrice === "string"
+            ? parseCurrency(prev.wholesalePrice)
+            : Number(prev.wholesalePrice) || 0;
+
+        if (name === "wholesalePrice" && Number(numericValue) > 0) {
+          const profitPercentage = Number(prev.profitPercentage) || 0;
+          const calculatedRetailPrice = calculateRetailPrice(
+            Number(numericValue),
+            profitPercentage
+          );
+          newData.retailPrice = Math.round(calculatedRetailPrice);
+        } else if (
+          name === "retailPrice" &&
+          Number(numericValue) > 0 &&
+          wholesalePrice > 0
+        ) {
+          const calculatedProfitPercentage = calculateProfitPercentage(
+            wholesalePrice,
+            Number(numericValue)
+          );
+          newData.profitPercentage = calculatedProfitPercentage.toFixed(2);
+        }
+
+        return newData;
+      });
+
+      if (errors[name]) {
+        setErrors((prev) => ({ ...prev, [name]: undefined }));
+      }
+      if (errors.form) {
+        setErrors((prev) => ({ ...prev, form: undefined }));
+      }
+    }
+  };
+
+  const handleNumericChange = (
+    name: keyof Pick<FormData, "profitPercentage">,
+    value: string
+  ) => {
+    if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      const numValue = parseFloat(value) || 0;
+      if (numValue <= 100) {
+        setFormData((prev) => {
+          const newData = { ...prev, [name]: value };
+
+          const wholesalePrice =
+            typeof prev.wholesalePrice === "string"
+              ? parseCurrency(prev.wholesalePrice)
+              : Number(prev.wholesalePrice) || 0;
+
+          if (wholesalePrice > 0) {
+            const calculatedRetailPrice = calculateRetailPrice(
+              wholesalePrice,
+              numValue
+            );
+            newData.retailPrice = Math.round(calculatedRetailPrice);
+          }
+
+          return newData;
+        });
+
+        if (errors[name]) {
+          setErrors((prev) => ({ ...prev, [name]: undefined }));
+        }
+        if (errors.form) {
+          setErrors((prev) => ({ ...prev, form: undefined }));
+        }
+      }
+    }
+  };
+
+  const handleQuantityChange = (
+    name: keyof Pick<FormData, "profitPercentage">,
+    delta: number
+  ) => {
+    setFormData((prev) => {
+      const currentValue = Number(prev[name]) || 0;
+      let newValue = currentValue + delta;
+      newValue = Math.max(0, Math.min(100, newValue));
+
+      const newData = { ...prev, [name]: newValue };
+
+      const wholesalePrice =
+        typeof prev.wholesalePrice === "string"
+          ? parseCurrency(prev.wholesalePrice)
+          : Number(prev.wholesalePrice) || 0;
+
+      if (wholesalePrice > 0) {
+        const calculatedRetailPrice = calculateRetailPrice(
+          wholesalePrice,
+          newValue
+        );
+        newData.retailPrice = Math.round(calculatedRetailPrice);
+      }
+
+      return newData;
+    });
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: undefined }));
+    }
+    if (errors.form) {
+      setErrors((prev) => ({ ...prev, form: undefined }));
+    }
+  };
+
   const validateForm = (): { isValid: boolean; newErrors: FormErrors } => {
     const newErrors: FormErrors = {};
+
     if (!formData.name.trim()) {
-      newErrors.name = "Nama Barang tidak boleh kosong.";
+      newErrors.name =
+        "Nama Barang tidak boleh kosong." /* cspell:disable-line */;
     }
     if (!formData.barcode.trim()) {
-      newErrors.barcode = "Barcode tidak boleh kosong.";
+      newErrors.barcode =
+        "Barcode tidak boleh kosong." /* cspell:disable-line */;
+    }
+
+    const wholesalePrice =
+      typeof formData.wholesalePrice === "string"
+        ? parseCurrency(formData.wholesalePrice.toString())
+        : Number(formData.wholesalePrice) || 0;
+    if (wholesalePrice <= 0) {
+      newErrors.wholesalePrice =
+        "Harga Grosir harus lebih dari 0." /* cspell:disable-line */;
+    }
+
+    const retailPrice =
+      typeof formData.retailPrice === "string"
+        ? parseCurrency(formData.retailPrice.toString())
+        : Number(formData.retailPrice) || 0;
+    if (retailPrice <= 0) {
+      newErrors.retailPrice =
+        "Harga Eceran harus lebih dari 0." /* cspell:disable-line */;
+    }
+
+    const profitPercentage = Number(formData.profitPercentage) || 0;
+    if (profitPercentage < 0) {
+      newErrors.profitPercentage =
+        "Margin Keuntungan tidak boleh negatif." /* cspell:disable-line */;
+    } else if (profitPercentage > 100) {
+      newErrors.profitPercentage =
+        "Margin Keuntungan tidak boleh lebih dari 100%." /* cspell:disable-line */;
+    }
+
+    if (wholesalePrice > 0 && retailPrice > 0 && retailPrice < wholesalePrice) {
+      newErrors.retailPrice =
+        "Harga Eceran tidak boleh lebih rendah dari Harga Grosir." /* cspell:disable-line */;
     }
 
     return { isValid: Object.keys(newErrors).length === 0, newErrors };
@@ -189,6 +379,15 @@ const EditItemPage: React.FC = () => {
       name: formData.name,
       description: formData.description,
       barcode: formData.barcode,
+      wholesalePrice:
+        typeof formData.wholesalePrice === "string"
+          ? parseCurrency(formData.wholesalePrice)
+          : Number(formData.wholesalePrice) || 0,
+      retailPrice:
+        typeof formData.retailPrice === "string"
+          ? parseCurrency(formData.retailPrice.toString())
+          : Number(formData.retailPrice) || 0,
+      profitPercentage: Number(formData.profitPercentage) || 0,
     };
 
     updateItemMutation.mutate({ id: formData.id, data: updateData });
@@ -265,7 +464,8 @@ const EditItemPage: React.FC = () => {
   if (!item) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Item tidak ditemukan</Alert>
+        <Alert severity="error">Item tidak ditemukan</Alert>{" "}
+        {/* cspell:disable-line */}
       </Box>
     );
   }
@@ -283,7 +483,7 @@ const EditItemPage: React.FC = () => {
       }}
     >
       <Header
-        title="Edit Barang"
+        title="Edit Barang" /* cspell:disable-line */
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -331,7 +531,8 @@ const EditItemPage: React.FC = () => {
           )}
 
           <Box>
-            <Typography sx={labelStyles}>Nama Barang</Typography>
+            <Typography sx={labelStyles}>Nama Barang</Typography>{" "}
+            {/* cspell:disable-line */}
             <TextField
               fullWidth
               variant="outlined"
@@ -339,7 +540,7 @@ const EditItemPage: React.FC = () => {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Masukkan nama barang"
+              placeholder="Masukkan nama barang" /* cspell:disable-line */
               error={!!errors.name}
               helperText={errors.name || ""}
               disabled={isLoading}
@@ -354,7 +555,8 @@ const EditItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Deskripsi</Typography>
+            <Typography sx={labelStyles}>Deskripsi</Typography>{" "}
+            {/* cspell:disable-line */}
             <TextField
               fullWidth
               variant="outlined"
@@ -363,7 +565,7 @@ const EditItemPage: React.FC = () => {
               onChange={handleInputChange}
               multiline
               rows={4}
-              placeholder="Masukkan deskripsi barang"
+              placeholder="Masukkan deskripsi barang" /* cspell:disable-line */
               error={!!errors.description}
               helperText={errors.description || ""}
               disabled={isLoading}
@@ -380,10 +582,159 @@ const EditItemPage: React.FC = () => {
               name="barcode"
               value={formData.barcode}
               onChange={handleInputChange}
-              placeholder="Masukkan atau scan barcode"
+              placeholder="Masukkan atau scan barcode" /* cspell:disable-line */
               error={!!errors.barcode}
               helperText={errors.barcode || ""}
               disabled={isLoading}
+              sx={{
+                ...commonTextFieldStyles,
+                "& .MuiOutlinedInput-root": {
+                  ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
+                  minHeight: "48px",
+                },
+              }}
+            />
+          </Box>
+
+          <Box>
+            <Typography sx={labelStyles}>Harga Grosir</Typography>{" "}
+            {/* cspell:disable-line */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              name="wholesalePrice"
+              value={formatCurrency(formData.wholesalePrice)}
+              onChange={(e) =>
+                handleCurrencyChange("wholesalePrice", e.target.value)
+              }
+              placeholder="0"
+              error={!!errors.wholesalePrice}
+              helperText={errors.wholesalePrice || ""}
+              disabled={isLoading}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">Rp</InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                  type: "text",
+                  autoComplete: "off",
+                },
+              }}
+              sx={{
+                ...commonTextFieldStyles,
+                "& .MuiOutlinedInput-root": {
+                  ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
+                  minHeight: "48px",
+                },
+              }}
+            />
+          </Box>
+
+          <Box>
+            <Typography sx={labelStyles}>Margin Keuntungan</Typography>{" "}
+            {/* cspell:disable-line */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                size="small"
+                name="profitPercentage"
+                value={formData.profitPercentage}
+                onChange={(e) =>
+                  handleNumericChange("profitPercentage", e.target.value)
+                }
+                placeholder="0"
+                error={!!errors.profitPercentage}
+                helperText={errors.profitPercentage || ""}
+                disabled={isLoading}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">%</InputAdornment>
+                    ),
+                  },
+                  htmlInput: {
+                    inputMode: "decimal",
+                    type: "text",
+                    autoComplete: "off",
+                  },
+                }}
+                sx={{
+                  ...commonTextFieldStyles,
+                  "& .MuiOutlinedInput-root": {
+                    ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
+                    minHeight: "48px",
+                    pr: 0.5,
+                  },
+                }}
+              />
+              <IconButton
+                size="small"
+                onClick={() => handleQuantityChange("profitPercentage", -1)}
+                disabled={isLoading}
+                sx={{
+                  background: lightButtonBackground,
+                  borderRadius: "6px",
+                  padding: "8px",
+                  height: "32px",
+                  "&:hover": { background: theme.palette.grey[300] },
+                }}
+              >
+                <RemoveIcon
+                  sx={{ color: primaryDarkColor, fontSize: "16px" }}
+                />
+              </IconButton>
+              <IconButton
+                size="small"
+                onClick={() => handleQuantityChange("profitPercentage", 1)}
+                disabled={isLoading}
+                sx={{
+                  background: lightButtonBackground,
+                  borderRadius: "6px",
+                  padding: "8px",
+                  height: "32px",
+                  "&:hover": { background: theme.palette.grey[300] },
+                }}
+              >
+                <AddIcon sx={{ color: primaryDarkColor, fontSize: "16px" }} />
+              </IconButton>
+            </Box>
+          </Box>
+
+          <Box>
+            <Typography sx={labelStyles}>Harga Eceran</Typography>{" "}
+            {/* cspell:disable-line */}
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              name="retailPrice"
+              value={formatCurrency(formData.retailPrice)}
+              onChange={(e) =>
+                handleCurrencyChange("retailPrice", e.target.value)
+              }
+              placeholder="0"
+              error={!!errors.retailPrice}
+              helperText={errors.retailPrice || ""}
+              disabled={isLoading}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">Rp</InputAdornment>
+                  ),
+                },
+                htmlInput: {
+                  inputMode: "numeric",
+                  pattern: "[0-9]*",
+                  type: "text",
+                  autoComplete: "off",
+                },
+              }}
               sx={{
                 ...commonTextFieldStyles,
                 "& .MuiOutlinedInput-root": {
@@ -423,7 +774,7 @@ const EditItemPage: React.FC = () => {
                   "&:hover": { backgroundColor: theme.palette.grey[300] },
                 }}
               >
-                Batalkan
+                Batalkan {/* cspell:disable-line */}
               </Button>
               <Button
                 fullWidth
@@ -444,7 +795,11 @@ const EditItemPage: React.FC = () => {
                   "&:hover": { backgroundColor: "#1E2532" },
                 }}
               >
-                {isLoading ? "Menyimpan..." : "Simpan"}
+                {
+                  isLoading
+                    ? "Menyimpan..." /* cspell:disable-line */
+                    : "Simpan" /* cspell:disable-line */
+                }
               </Button>
             </Box>
           </Box>

@@ -5,6 +5,9 @@ export interface Item {
   name: string;
   barcode: string;
   description: string;
+  wholesalePrice: number;
+  profitPercentage: number;
+  retailPrice: number;
 }
 
 export interface ItemDetailResponse {
@@ -18,4 +21,7 @@ export interface CreateItemRequest {
   description: string;
   currentStock: number;
   threshold: number;
+  wholesalePrice: number;
+  profitPercentage: number;
+  retailPrice: number;
 }
