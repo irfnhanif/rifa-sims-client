@@ -129,7 +129,7 @@ const ChooseItemPage: React.FC = () => {
   };
 
   const renderScoreWithProgress = (score: number) => {
-    const { label, color } = getRecommendationLevel(score);
+    const { color } = getRecommendationLevel(score);
 
     return (
       <Box
@@ -159,7 +159,6 @@ const ChooseItemPage: React.FC = () => {
               }}
             />
           </Box>
-          
         </Box>
       </Box>
     );
@@ -227,7 +226,8 @@ const ChooseItemPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Barcode tidak ditemukan. Silakan kembali dan scan ulang. {/* cspell:disable-line */}
+          Barcode tidak ditemukan. Silakan kembali dan scan ulang.{" "}
+          {/* cspell:disable-line */}
         </Alert>
       </Box>
     );
@@ -317,12 +317,14 @@ const ChooseItemPage: React.FC = () => {
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-            {useRecommendations ? "Mode Rekomendasi" : "Mode Standar"} {/* cspell:disable-line */}
+            {useRecommendations ? "Mode Rekomendasi" : "Mode Standar"}{" "}
+            {/* cspell:disable-line */}
           </Typography>
           <Typography variant="body2" color="text.secondary">
             {useRecommendations
               ? "Menampilkan barang berdasarkan rekomendasi sistem dengan skor relevansi dan prioritas berdasarkan pola penggunaan sebelumnya." /* cspell:disable-line */
-              : "Menampilkan semua barang dengan barcode yang sama tanpa prioritas khusus."} {/* cspell:disable-line */}
+              : "Menampilkan semua barang dengan barcode yang sama tanpa prioritas khusus."}{" "}
+            {/* cspell:disable-line */}
           </Typography>
         </Popover>
 
@@ -337,13 +339,15 @@ const ChooseItemPage: React.FC = () => {
 
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            Gagal memuat rekomendasi. Menggunakan hasil pencarian standar.{/* cspell:disable-line */}
+            Gagal memuat rekomendasi. Menggunakan hasil pencarian standar.
+            {/* cspell:disable-line */}
           </Alert>
         )}
 
         {!isLoading && currentItems.length === 0 && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            Tidak ada barang yang tersedia untuk dipilih. {/* cspell:disable-line */}
+            Tidak ada barang yang tersedia untuk dipilih.{" "}
+            {/* cspell:disable-line */}
           </Alert>
         )}
 

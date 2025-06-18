@@ -203,10 +203,11 @@ const ItemListPage: React.FC = () => {
   }
 
   if (error) {
+    console.log(error);
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading items:
+          Gagal mengambil data: {/* cspell:disable-line */}
           {error instanceof Error ? error.message : "Unknown error"}
         </Alert>
       </Box>

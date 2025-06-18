@@ -312,7 +312,7 @@ const StockChangeHistoryPage: React.FC = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading audit logs: {/* cspell:disable-line */}
+          Gagal mengambil data: {/* cspell:disable-line */}
           {error instanceof Error ? error.message : "Unknown error"}
         </Alert>
       </Box>

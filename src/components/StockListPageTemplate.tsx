@@ -242,7 +242,7 @@ const StockListPageTemplate: React.FC<StockListPageProps> = ({
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
-          Error loading stocks:
+          Gagal mengambil data: {/* cspell:disable-line */}
           {error instanceof Error ? error.message : "Unknown error"}
         </Alert>
       </Box>
