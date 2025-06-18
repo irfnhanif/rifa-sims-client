@@ -331,7 +331,6 @@ const AddItemPage: React.FC = () => {
     }
   };
 
-
   const validateForm = (): { isValid: boolean; newErrors: FormErrors } => {
     const newErrors: FormErrors = {};
 
@@ -652,7 +651,9 @@ const AddItemPage: React.FC = () => {
                 slotProps={{
                   input: {
                     endAdornment: (
-                      <InputAdornment position="end">%</InputAdornment>
+                      <InputAdornment position="end" sx={{ mr: 1.5 }}>
+                        %
+                      </InputAdornment>
                     ),
                   },
                   htmlInput: {

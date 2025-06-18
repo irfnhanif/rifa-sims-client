@@ -655,7 +655,9 @@ const EditItemPage: React.FC = () => {
                 slotProps={{
                   input: {
                     endAdornment: (
-                      <InputAdornment position="end">%</InputAdornment>
+                      <InputAdornment position="end" sx={{ mr: 1.5 }}>
+                        %
+                      </InputAdornment>
                     ),
                   },
                   htmlInput: {
