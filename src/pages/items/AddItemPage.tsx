@@ -1,4 +1,10 @@
-import React, { useState } from "react";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 import {
   Box,
   Container,
@@ -9,9 +15,22 @@ import {
   useTheme,
   Alert,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+  Paper,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  BrowserMultiFormatReader,
+  DecodeHintType,
+  BarcodeFormat,
+  NotFoundException,
+} from "@zxing/library";
 
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -22,6 +41,11 @@ import { createItem } from "../../api/items";
 import RemoveIcon from "@mui/icons-material/RemoveCircleOutline";
 import AddIcon from "@mui/icons-material/AddCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import CloseIcon from "@mui/icons-material/Close";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
 interface FormData {
   name: string;
@@ -54,6 +78,23 @@ const AddItemPage: React.FC = () => {
   const primaryDarkColor = "#2D3648";
   const inputOutlineColor = "#CBD2E0";
   const lightButtonBackground = "#EDF0F7";
+  const scannerAreaBackground = "#EDF0F7";
+  const scannerAreaOutline = `2px solid ${primaryDarkColor}`;
+
+  const [isScannerOpen, setIsScannerOpen] = useState<boolean>(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [isLoadingCameras, setIsLoadingCameras] = useState<boolean>(false);
+  const [permissionDenied, setPermissionDenied] = useState<boolean>(false);
+  const [needsPermission, setNeedsPermission] = useState<boolean>(false);
+  const [isProcessingBarcode, setIsProcessingBarcode] =
+    useState<boolean>(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scanningRef = useRef<boolean>(false);
+  const isUnmountedRef = useRef<boolean>(false);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -68,7 +109,7 @@ const AddItemPage: React.FC = () => {
 
   const [errors, setErrors] = useState<FormErrors>({});
 
-  const SUCCESS_MESSAGE = "berhasil"; /* cspell:disable-line */
+  const SUCCESS_MESSAGE = "berhasil";
 
   const formatCurrency = (value: number | string): string => {
     const numValue =
@@ -99,6 +140,357 @@ const AddItemPage: React.FC = () => {
     return wholesale + (wholesale * profitPercentage) / 100;
   };
 
+  const hints = useMemo(() => {
+    const hintMap = new Map();
+    const oneDFormats = [
+      BarcodeFormat.UPC_A,
+      BarcodeFormat.UPC_E,
+      BarcodeFormat.EAN_8,
+      BarcodeFormat.EAN_13,
+      BarcodeFormat.CODE_39,
+      BarcodeFormat.CODE_93,
+      BarcodeFormat.CODE_128,
+      BarcodeFormat.ITF,
+    ];
+    hintMap.set(DecodeHintType.POSSIBLE_FORMATS, oneDFormats);
+    return hintMap;
+  }, []);
+
+  const stopScan = useCallback(() => {
+    scanningRef.current = false;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.pause();
+      videoRef.current.load();
+    }
+
+    if (codeReaderRef.current) {
+      try {
+        codeReaderRef.current.reset();
+      } catch (error) {
+        console.warn("Error resetting code reader:", error);
+      }
+      codeReaderRef.current = null;
+    }
+
+    if (!isUnmountedRef.current) {
+      setIsScanning(false);
+      setIsProcessingBarcode(false);
+    }
+  }, []);
+
+  const requestCameraPermission = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+      });
+      stream.getTracks().forEach((track) => track.stop());
+
+      if (!isUnmountedRef.current) {
+        setPermissionDenied(false);
+        setNeedsPermission(false);
+      }
+      return true;
+    } catch (error) {
+      console.error("Camera permission denied:", error);
+
+      if (!isUnmountedRef.current) {
+        setPermissionDenied(true);
+        setNeedsPermission(false);
+        setScanError(
+          "Izin kamera diperlukan untuk memindai barcode. Harap aktifkan akses kamera di pengaturan browser Anda."
+        );
+      }
+      return false;
+    }
+  }, []);
+
+  const handleBarcodeDetected = useCallback(
+    (barcode: string) => {
+      if (isProcessingBarcode || !scanningRef.current || isUnmountedRef.current)
+        return;
+
+      scanningRef.current = false;
+      setIsProcessingBarcode(true);
+
+      setFormData((prev) => ({ ...prev, barcode }));
+
+      if (errors.barcode) {
+        setErrors((prev) => ({ ...prev, barcode: undefined }));
+      }
+
+      setTimeout(() => {
+        stopScan();
+        setIsScannerOpen(false);
+      }, 1500);
+    },
+    [stopScan, errors.barcode, isProcessingBarcode]
+  );
+
+  const startBarcodeScanning = useCallback(async () => {
+    if (!codeReaderRef.current || !videoRef.current || isUnmountedRef.current) {
+      return;
+    }
+
+    scanningRef.current = true;
+
+    try {
+      const result = await codeReaderRef.current.decodeOnceFromVideoDevice(
+        undefined,
+        videoRef.current
+      );
+
+      if (result && scanningRef.current && !isUnmountedRef.current) {
+        const barcode = result.getText();
+        handleBarcodeDetected(barcode);
+      }
+    } catch (error) {
+      if (isUnmountedRef.current) return;
+
+      if (error instanceof NotFoundException) {
+        if (scanningRef.current) {
+          setTimeout(() => {
+            if (scanningRef.current && !isUnmountedRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      } else {
+        if (scanningRef.current) {
+          setTimeout(() => {
+            if (scanningRef.current && !isUnmountedRef.current) {
+              startBarcodeScanning();
+            }
+          }, 500);
+        }
+      }
+    }
+  }, [handleBarcodeDetected]);
+
+  const startScan = useCallback(async () => {
+    if (!videoRef.current || isUnmountedRef.current) return;
+
+    setIsScanning(true);
+    setScanError(null);
+    setIsProcessingBarcode(false);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      });
+
+      if (isUnmountedRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      videoRef.current.srcObject = stream;
+      streamRef.current = stream;
+
+      await new Promise<void>((resolve, reject) => {
+        if (!videoRef.current) {
+          reject(new Error("Video element not available"));
+          return;
+        }
+
+        const handleLoadedMetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.removeEventListener(
+              "loadedmetadata",
+              handleLoadedMetadata
+            );
+          }
+          resolve();
+        };
+
+        const handleError = (error: Event) => {
+          if (videoRef.current) {
+            videoRef.current.removeEventListener("error", handleError);
+          }
+          reject(error);
+        };
+
+        videoRef.current.addEventListener(
+          "loadedmetadata",
+          handleLoadedMetadata
+        );
+        videoRef.current.addEventListener("error", handleError);
+      });
+
+      if (isUnmountedRef.current) return;
+
+      if (videoRef.current) {
+        try {
+          if (videoRef.current.paused || videoRef.current.readyState < 3) {
+            await videoRef.current.play();
+          }
+        } catch (playError) {
+          throw new Error("Failed to start video playback");
+        }
+      }
+
+      if (isUnmountedRef.current) return;
+
+      codeReaderRef.current = new BrowserMultiFormatReader(hints);
+
+      setTimeout(() => {
+        if (!isUnmountedRef.current) {
+          startBarcodeScanning();
+        }
+      }, 500);
+    } catch (err: unknown) {
+      if (isUnmountedRef.current) return;
+
+      let message = `Gagal memulai kamera: ${
+        err instanceof Error ? err.message : "Kesalahan tidak diketahui"
+      }.`;
+
+      if (err instanceof Error && err.name === "NotAllowedError") {
+        message =
+          "Izin kamera ditolak. Harap aktifkan akses kamera di pengaturan browser Anda.";
+        setPermissionDenied(true);
+      } else if (err instanceof Error && err.name === "NotReadableError") {
+        message =
+          "Kamera sedang digunakan atau tidak tersedia. Silakan coba lagi.";
+      }
+      setScanError(message);
+      setIsScanning(false);
+    }
+  }, [hints, startBarcodeScanning]);
+
+  const initializeCamera = useCallback(async () => {
+    if (isUnmountedRef.current) return;
+
+    setIsLoadingCameras(true);
+
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission || isUnmountedRef.current) {
+      setIsLoadingCameras(false);
+      return false;
+    }
+
+    if (!isUnmountedRef.current) {
+      setIsLoadingCameras(false);
+    }
+    return true;
+  }, [requestCameraPermission]);
+
+  const handleOpenScanner = async () => {
+    setIsScannerOpen(true);
+    setScanError(null);
+    setPermissionDenied(false);
+    setNeedsPermission(false);
+    setIsProcessingBarcode(false);
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setScanError("Browser Anda tidak mendukung akses kamera");
+      setIsLoadingCameras(false);
+      return;
+    }
+
+    try {
+      const permissionResult = await navigator.permissions?.query({
+        name: "camera" as PermissionName,
+      });
+
+      if (permissionResult?.state === "granted") {
+        setNeedsPermission(false);
+        const hasPermission = await initializeCamera();
+        if (hasPermission) {
+          setTimeout(() => {
+            if (!isUnmountedRef.current) {
+              startScan();
+            }
+          }, 500);
+        }
+      } else {
+        setNeedsPermission(true);
+        setIsLoadingCameras(false);
+      }
+    } catch {
+      setNeedsPermission(true);
+      setIsLoadingCameras(false);
+    }
+  };
+
+  const handleCloseScanner = () => {
+    stopScan();
+    setIsScannerOpen(false);
+    setScanError(null);
+    setPermissionDenied(false);
+    setNeedsPermission(false);
+    setIsProcessingBarcode(false);
+  };
+
+  const handleRequestPermission = async () => {
+    setNeedsPermission(false);
+    const hasPermission = await initializeCamera();
+    if (hasPermission) {
+      setTimeout(() => {
+        if (!isUnmountedRef.current) {
+          startScan();
+        }
+      }, 500);
+    }
+  };
+
+  const handleRetryScanner = () => {
+    setScanError(null);
+    setIsProcessingBarcode(false);
+    startScan();
+  };
+
+  const handleStartScan = () => {
+    if (isScanning) {
+      stopScan();
+    } else {
+      startScan();
+    }
+  };
+
+  const getCameraIcon = () => {
+    if (isProcessingBarcode) {
+      return <CheckCircleIcon sx={{ fontSize: "28px", color: "#4caf50" }} />;
+    }
+    if (isScanning) {
+      return <StopIcon sx={{ fontSize: "28px" }} />;
+    }
+    return <PlayArrowIcon sx={{ fontSize: "28px" }} />;
+  };
+
+  const getCameraTooltip = () => {
+    if (isProcessingBarcode) {
+      return "Memproses Barcode";
+    }
+    if (isScanning) {
+      return "Hentikan Pemindaian";
+    }
+    return "Mulai Pemindaian";
+  };
+
+  useEffect(() => {
+    return () => {
+      isUnmountedRef.current = true;
+      stopScan();
+    };
+  }, [stopScan]);
+
+  useEffect(() => {
+    isUnmountedRef.current = false;
+  }, []);
+
   const createItemMutation = useMutation({
     mutationFn: createItem,
     onSuccess: () => {
@@ -106,7 +498,7 @@ const AddItemPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
 
       setErrors({
-        form: "Barang berhasil ditambahkan!" /* cspell:disable-line */,
+        form: "Barang berhasil ditambahkan!",
       });
       setFormData({
         name: "",
@@ -168,7 +560,7 @@ const AddItemPage: React.FC = () => {
           Object.keys(serverFieldErrors).length === 0 || serverFieldErrors.form
             ? serverFieldErrors.form ||
               error.message ||
-              "Terjadi kesalahan pada server." /* cspell:disable-line */
+              "Terjadi kesalahan pada server."
             : serverFieldErrors.form,
       }));
     },
@@ -221,6 +613,7 @@ const AddItemPage: React.FC = () => {
             wholesalePrice,
             Number(numericValue)
           );
+
           newData.profitPercentage = calculatedProfitPercentage.toFixed(2);
         }
 
@@ -244,34 +637,33 @@ const AddItemPage: React.FC = () => {
     value: string
   ) => {
     if (name === "profitPercentage") {
-      if (value === "" || /^[0-9]*\.?[0-9]*$/.test(value)) {
+      if (value === "" || /^-?[0-9]*\.?[0-9]*$/.test(value)) {
         const numValue = parseFloat(value) || 0;
-        if (numValue <= 100) {
-          setFormData((prev) => {
-            const newData = { ...prev, [name]: value };
 
-            const wholesalePrice =
-              typeof prev.wholesalePrice === "string"
-                ? parseCurrency(prev.wholesalePrice)
-                : Number(prev.wholesalePrice) || 0;
+        setFormData((prev) => {
+          const newData = { ...prev, [name]: value };
 
-            if (wholesalePrice > 0) {
-              const calculatedRetailPrice = calculateRetailPrice(
-                wholesalePrice,
-                numValue
-              );
-              newData.retailPrice = Math.round(calculatedRetailPrice);
-            }
+          const wholesalePrice =
+            typeof prev.wholesalePrice === "string"
+              ? parseCurrency(prev.wholesalePrice)
+              : Number(prev.wholesalePrice) || 0;
 
-            return newData;
-          });
-
-          if (errors[name]) {
-            setErrors((prev) => ({ ...prev, [name]: undefined }));
+          if (wholesalePrice > 0) {
+            const calculatedRetailPrice = calculateRetailPrice(
+              wholesalePrice,
+              numValue
+            );
+            newData.retailPrice = Math.round(calculatedRetailPrice);
           }
-          if (errors.form) {
-            setErrors((prev) => ({ ...prev, form: undefined }));
-          }
+
+          return newData;
+        });
+
+        if (errors[name]) {
+          setErrors((prev) => ({ ...prev, [name]: undefined }));
+        }
+        if (errors.form) {
+          setErrors((prev) => ({ ...prev, form: undefined }));
         }
       }
     } else {
@@ -299,8 +691,6 @@ const AddItemPage: React.FC = () => {
       let newValue = currentValue + delta;
 
       if (name === "profitPercentage") {
-        newValue = Math.max(0, Math.min(100, newValue));
-
         const newData = { ...prev, [name]: newValue };
 
         const wholesalePrice =
@@ -335,29 +725,23 @@ const AddItemPage: React.FC = () => {
     const newErrors: FormErrors = {};
 
     if (!formData.name.trim()) {
-      newErrors.name =
-        "Nama Barang tidak boleh kosong." /* cspell:disable-line */;
+      newErrors.name = "Nama Barang tidak boleh kosong.";
     }
     if (!formData.barcode.trim()) {
-      newErrors.barcode =
-        "Barcode tidak boleh kosong." /* cspell:disable-line */;
+      newErrors.barcode = "Barcode tidak boleh kosong.";
     }
     if (formData.currentStock !== "" && Number(formData.currentStock) < 0) {
-      newErrors.currentStock =
-        "Jumlah Stok tidak boleh negatif." /* cspell:disable-line */;
+      newErrors.currentStock = "Jumlah Stok tidak boleh negatif.";
     } else if (
       formData.currentStock !== "" &&
       isNaN(Number(formData.currentStock))
     ) {
-      newErrors.currentStock =
-        "Jumlah Stok harus berupa angka." /* cspell:disable-line */;
+      newErrors.currentStock = "Jumlah Stok harus berupa angka.";
     }
     if (formData.threshold !== "" && Number(formData.threshold) < 0) {
-      newErrors.threshold =
-        "Batas Minimal Stok tidak boleh negatif." /* cspell:disable-line */;
+      newErrors.threshold = "Batas Minimal Stok tidak boleh negatif.";
     } else if (formData.threshold !== "" && isNaN(Number(formData.threshold))) {
-      newErrors.threshold =
-        "Batas Minimal Stok harus berupa angka." /* cspell:disable-line */;
+      newErrors.threshold = "Batas Minimal Stok harus berupa angka.";
     }
 
     const wholesalePrice =
@@ -365,8 +749,7 @@ const AddItemPage: React.FC = () => {
         ? parseCurrency(formData.wholesalePrice.toString())
         : Number(formData.wholesalePrice) || 0;
     if (wholesalePrice <= 0) {
-      newErrors.wholesalePrice =
-        "Harga Grosir harus lebih dari 0." /* cspell:disable-line */;
+      newErrors.wholesalePrice = "Harga Grosir harus lebih dari 0.";
     }
 
     const retailPrice =
@@ -374,22 +757,20 @@ const AddItemPage: React.FC = () => {
         ? parseCurrency(formData.retailPrice.toString())
         : Number(formData.retailPrice) || 0;
     if (retailPrice <= 0) {
-      newErrors.retailPrice =
-        "Harga Eceran harus lebih dari 0." /* cspell:disable-line */;
+      newErrors.retailPrice = "Harga Eceran harus lebih dari 0.";
     }
 
     const profitPercentage = Number(formData.profitPercentage) || 0;
     if (profitPercentage < 0) {
-      newErrors.profitPercentage =
-        "Margin Keuntungan tidak boleh negatif." /* cspell:disable-line */;
+      newErrors.profitPercentage = "Margin Keuntungan tidak boleh negatif.";
     } else if (profitPercentage > 100) {
       newErrors.profitPercentage =
-        "Margin Keuntungan tidak boleh lebih dari 100%." /* cspell:disable-line */;
+        "Margin Keuntungan tidak boleh lebih dari 100%.";
     }
 
     if (wholesalePrice > 0 && retailPrice > 0 && retailPrice < wholesalePrice) {
       newErrors.retailPrice =
-        "Harga Eceran tidak boleh lebih rendah dari Harga Grosir." /* cspell:disable-line */;
+        "Harga Eceran tidak boleh lebih rendah dari Harga Grosir.";
     }
 
     return { isValid: Object.keys(newErrors).length === 0, newErrors };
@@ -479,7 +860,7 @@ const AddItemPage: React.FC = () => {
       }}
     >
       <Header
-        title="Tambah Barang" /* cspell:disable-line */
+        title="Tambah Barang"
         showBackButton={true}
         onBackClick={handleBackClick}
       />
@@ -527,8 +908,7 @@ const AddItemPage: React.FC = () => {
           )}
 
           <Box>
-            <Typography sx={labelStyles}>Nama Barang</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Nama Barang</Typography>
             <TextField
               fullWidth
               variant="outlined"
@@ -536,7 +916,7 @@ const AddItemPage: React.FC = () => {
               name="name"
               value={formData.name}
               onChange={handleInputChange}
-              placeholder="Masukkan nama barang" /* cspell:disable-line */
+              placeholder="Masukkan nama barang"
               error={!!errors.name}
               helperText={errors.name || ""}
               disabled={isLoading}
@@ -551,8 +931,7 @@ const AddItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Deskripsi</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Deskripsi</Typography>
             <TextField
               fullWidth
               variant="outlined"
@@ -561,7 +940,7 @@ const AddItemPage: React.FC = () => {
               onChange={handleInputChange}
               multiline
               rows={4}
-              placeholder="Masukkan deskripsi barang" /* cspell:disable-line */
+              placeholder="Masukkan deskripsi barang"
               error={!!errors.description}
               helperText={errors.description || ""}
               disabled={isLoading}
@@ -571,30 +950,51 @@ const AddItemPage: React.FC = () => {
 
           <Box>
             <Typography sx={labelStyles}>Barcode</Typography>
-            <TextField
-              fullWidth
-              variant="outlined"
-              size="small"
-              name="barcode"
-              value={formData.barcode}
-              onChange={handleInputChange}
-              placeholder="Masukkan atau scan barcode" /* cspell:disable-line */
-              error={!!errors.barcode}
-              helperText={errors.barcode || ""}
-              disabled={isLoading}
-              sx={{
-                ...commonTextFieldStyles,
-                "& .MuiOutlinedInput-root": {
-                  ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
-                  minHeight: "48px",
-                },
-              }}
-            />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                size="small"
+                name="barcode"
+                value={formData.barcode}
+                onChange={handleInputChange}
+                placeholder="Masukkan atau scan barcode"
+                error={!!errors.barcode}
+                helperText={errors.barcode || ""}
+                disabled={isLoading}
+                sx={{
+                  ...commonTextFieldStyles,
+                  "& .MuiOutlinedInput-root": {
+                    ...commonTextFieldStyles["& .MuiOutlinedInput-root"],
+                    minHeight: "48px",
+                  },
+                }}
+              />
+              <Tooltip title="Pindai Barcode">
+                <IconButton
+                  onClick={handleOpenScanner}
+                  disabled={isLoading}
+                  sx={{
+                    background: primaryDarkColor,
+                    color: "white",
+                    borderRadius: "6px",
+                    padding: "12px",
+                    minHeight: "48px",
+                    "&:hover": { background: "#1E2532" },
+                    "&:disabled": {
+                      background: theme.palette.grey[400],
+                      color: theme.palette.grey[200],
+                    },
+                  }}
+                >
+                  <QrCodeScannerIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Harga Grosir</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Harga Grosir</Typography>
             <TextField
               fullWidth
               variant="outlined"
@@ -632,8 +1032,7 @@ const AddItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Margin Keuntungan</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Margin Keuntungan</Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
                 fullWidth
@@ -651,9 +1050,7 @@ const AddItemPage: React.FC = () => {
                 slotProps={{
                   input: {
                     endAdornment: (
-                      <InputAdornment position="end" sx={{ mr: 1.5 }}>
-                        %
-                      </InputAdornment>
+                      <InputAdornment position="end">%</InputAdornment>
                     ),
                   },
                   htmlInput: {
@@ -705,8 +1102,7 @@ const AddItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Harga Eceran</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Harga Eceran</Typography>
             <TextField
               fullWidth
               variant="outlined"
@@ -744,8 +1140,7 @@ const AddItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Jumlah Stok</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Jumlah Stok</Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
                 fullWidth
@@ -811,8 +1206,7 @@ const AddItemPage: React.FC = () => {
           </Box>
 
           <Box>
-            <Typography sx={labelStyles}>Batas Minimal Stok</Typography>{" "}
-            {/* cspell:disable-line */}
+            <Typography sx={labelStyles}>Batas Minimal Stok</Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
                 fullWidth
@@ -906,7 +1300,7 @@ const AddItemPage: React.FC = () => {
                   "&:hover": { backgroundColor: theme.palette.grey[300] },
                 }}
               >
-                Batalkan {/* cspell:disable-line */}
+                Batalkan
               </Button>
               <Button
                 fullWidth
@@ -927,11 +1321,7 @@ const AddItemPage: React.FC = () => {
                   "&:hover": { backgroundColor: "#1E2532" },
                 }}
               >
-                {
-                  isLoading
-                    ? "Menyimpan..." /* cspell:disable-line */
-                    : "Simpan" /* cspell:disable-line */
-                }
+                {isLoading ? "Menyimpan..." : "Simpan"}
               </Button>
             </Box>
           </Box>
@@ -939,6 +1329,347 @@ const AddItemPage: React.FC = () => {
       </Container>
 
       <Footer />
+
+      <Dialog
+        open={isScannerOpen}
+        onClose={handleCloseScanner}
+        maxWidth="sm"
+        fullWidth
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: "12px",
+              maxHeight: "90vh",
+              mx: { xs: 1, sm: 2 },
+              my: { xs: 1, sm: 2 },
+              width: { xs: "calc(100% - 16px)", sm: "calc(100% - 32px)" },
+              maxWidth: { xs: "none", sm: "500px" },
+            },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            pb: 1,
+            px: { xs: 2, sm: 3 },
+            fontWeight: 600,
+            fontSize: { xs: "1.1rem", sm: "1.25rem" },
+          }}
+        >
+          Pindai Barcode
+          <IconButton
+            onClick={handleCloseScanner}
+            sx={{
+              color: theme.palette.grey[500],
+              "&:hover": { color: theme.palette.grey[700] },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              position: "relative",
+              background: scannerAreaBackground,
+              border: scannerAreaOutline,
+              borderRadius: "8px",
+              overflow: "hidden",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+              height: { xs: "250px", sm: "300px" },
+              aspectRatio: "4/3",
+            }}
+          >
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: isScanning ? "block" : "none",
+              }}
+            />
+
+            {(isLoadingCameras || isProcessingBarcode) && (
+              <Box sx={{ position: "absolute", textAlign: "center" }}>
+                <CircularProgress />
+                <Typography
+                  variant="body2"
+                  sx={{ mt: 1, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
+                >
+                  {isProcessingBarcode
+                    ? "Memproses barcode..."
+                    : "Memuat kamera..."}
+                </Typography>
+              </Box>
+            )}
+
+            {needsPermission && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  textAlign: "center",
+                  p: { xs: 2, sm: 3 },
+                }}
+              >
+                <QrCodeScannerIcon
+                  sx={{
+                    fontSize: { xs: 48, sm: 64 },
+                    color: primaryDarkColor,
+                    mb: 2,
+                  }}
+                />
+                <Typography
+                  variant="h6"
+                  sx={{ mb: 2, fontSize: { xs: "1rem", sm: "1.25rem" } }}
+                >
+                  Akses Kamera Diperlukan
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mb: 3,
+                    color: theme.palette.text.secondary,
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                  }}
+                >
+                  Aplikasi memerlukan izin untuk mengakses kamera untuk memindai
+                  barcode
+                </Typography>
+                <Button
+                  variant="contained"
+                  onClick={handleRequestPermission}
+                  size={window.innerWidth < 600 ? "small" : "medium"}
+                  sx={{
+                    background: primaryDarkColor,
+                    color: "white",
+                    "&:hover": { background: "#1E2532" },
+                  }}
+                  startIcon={<QrCodeScannerIcon />}
+                >
+                  Izinkan Akses Kamera
+                </Button>
+              </Box>
+            )}
+
+            {permissionDenied && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  textAlign: "center",
+                  p: { xs: 2, sm: 3 },
+                }}
+              >
+                <CloseIcon
+                  sx={{
+                    fontSize: { xs: 48, sm: 64 },
+                    color: theme.palette.error.main,
+                    mb: 2,
+                  }}
+                />
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mb: 2,
+                    color: theme.palette.error.main,
+                    fontSize: { xs: "1rem", sm: "1.25rem" },
+                  }}
+                >
+                  Izin Kamera Ditolak
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    mb: 3,
+                    color: theme.palette.text.secondary,
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                  }}
+                >
+                  Harap aktifkan izin kamera di pengaturan browser Anda,
+                  kemudian coba lagi
+                </Typography>
+                <Button
+                  variant="outlined"
+                  onClick={handleRequestPermission}
+                  size={window.innerWidth < 600 ? "small" : "medium"}
+                  sx={{
+                    borderColor: primaryDarkColor,
+                    color: primaryDarkColor,
+                    "&:hover": {
+                      borderColor: "#1E2532",
+                      backgroundColor: "rgba(45, 54, 72, 0.08)",
+                    },
+                  }}
+                  startIcon={<QrCodeScannerIcon />}
+                >
+                  Coba Lagi
+                </Button>
+              </Box>
+            )}
+
+            {!isLoadingCameras &&
+              !isScanning &&
+              !needsPermission &&
+              !permissionDenied &&
+              !scanError &&
+              !isProcessingBarcode && (
+                <Box sx={{ position: "absolute", textAlign: "center" }}>
+                  <QrCodeScannerIcon
+                    sx={{
+                      fontSize: { xs: 48, sm: 64 },
+                      color: theme.palette.grey[400],
+                    }}
+                  />
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mt: 2,
+                      color: theme.palette.text.secondary,
+                      fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    }}
+                  >
+                    Klik tombol untuk memulai pemindaian
+                  </Typography>
+                </Box>
+              )}
+
+            {isScanning && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  width: "80%",
+                  height: "40%",
+                  border: "2px solid rgba(255,255,255,0.7)",
+                  borderRadius: "8px",
+                  boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+                }}
+              />
+            )}
+
+            {isProcessingBarcode && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  color: "white",
+                  backgroundColor: "#4caf50",
+                  padding: 3,
+                  borderRadius: 2,
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <CheckCircleIcon sx={{ fontSize: 48, color: "white", mb: 1 }} />
+                <Typography
+                  variant="h6"
+                  sx={{ color: "white", fontWeight: 600 }}
+                >
+                  Barcode Terdeteksi!
+                </Typography>
+                <Typography variant="body2" sx={{ color: "white", mt: 1 }}>
+                  Menutup Pemindai...
+                </Typography>
+              </Box>
+            )}
+
+            {scanError && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  textAlign: "center",
+                  p: { xs: 2, sm: 3 },
+                }}
+              >
+                <Alert
+                  severity="error"
+                  sx={{ mb: 2, fontSize: { xs: "0.8rem", sm: "0.875rem" } }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      onClick={handleRetryScanner}
+                    >
+                      Coba Lagi
+                    </Button>
+                  }
+                >
+                  {scanError}
+                </Alert>
+              </Box>
+            )}
+          </Paper>
+
+          <Typography
+            variant="body2"
+            sx={{
+              textAlign: "center",
+              mt: 2,
+              color: theme.palette.text.secondary,
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+            }}
+          >
+            {isScanning
+              ? "Arahkan kamera ke barcode untuk memindai secara otomatis"
+              : isProcessingBarcode
+              ? "Sedang memproses barcode yang terdeteksi..."
+              : "Tekan tombol untuk memulai pemindaian barcode"}
+          </Typography>
+
+          {!needsPermission &&
+            !permissionDenied &&
+            !isLoadingCameras &&
+            !isProcessingBarcode && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  mt: 2,
+                }}
+              >
+                <Tooltip title={getCameraTooltip()}>
+                  <IconButton
+                    onClick={handleStartScan}
+                    disabled={false}
+                    sx={{
+                      padding: { xs: "16px", sm: "20px" },
+                      background: primaryDarkColor,
+                      borderRadius: "50%",
+                      color: "white",
+                      transform: { xs: "scale(1.1)", sm: "scale(1.2)" },
+                      "&:hover": {
+                        background: "#1E2532",
+                        transform: { xs: "scale(1.15)", sm: "scale(1.25)" },
+                      },
+                      transition: "all 0.2s ease-in-out",
+                    }}
+                  >
+                    {getCameraIcon()}
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
