@@ -78,8 +78,8 @@ const HomePage: React.FC = () => {
       path: "/stocks",
     },
     {
-      id: "riwayat-perubahan" /* cspell:disable-line */,
-      label: "Riwayat Perubahan" /* cspell:disable-line */,
+      id: "riwayat-perubahan-stok" /* cspell:disable-line */,
+      label: "Riwayat Perubahan Stok" /* cspell:disable-line */,
       icon: <HistoryIcon />,
       path: "/stock-change-history",
       ownerOnly: true,
