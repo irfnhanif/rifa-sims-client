@@ -333,6 +333,7 @@ const EditItemPage: React.FC = () => {
           if (videoRef.current.paused || videoRef.current.readyState < 3) {
             await videoRef.current.play();
           }
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (playError) {
           throw new Error("Failed to start video playback");
         }
@@ -519,6 +520,10 @@ const EditItemPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["item", id] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
+      queryClient.invalidateQueries({
+        queryKey: ["itemStock"],
+        refetchType: "all",
+      });
 
       setErrors({
         form: "Barang berhasil diperbarui!",

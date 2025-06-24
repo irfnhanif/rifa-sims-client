@@ -15,7 +15,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { InfoOutlined as InfoOutlinedIcon } from "@mui/icons-material";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { fetchRecommendedItemStockByBarcode } from "../../api/stocks";
 import type {
@@ -25,18 +25,18 @@ import type {
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
 
-interface LocationState {
-  items?: BarcodeScanResponse[];
-  barcode?: string;
-}
 
 const ChooseItemPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const { items: initialItems = [], barcode } =
-    (location.state as LocationState) || {};
+  // Get data from URL parameters instead of location state
+  const barcode = searchParams.get("barcode");
+  const itemsParam = searchParams.get("items");
+  const initialItems: BarcodeScanResponse[] = itemsParam
+    ? JSON.parse(itemsParam)
+    : [];
 
   const primaryDarkColor = "#2D3648";
   const lightButtonBackground = "#EDF0F7";
@@ -174,13 +174,16 @@ const ChooseItemPage: React.FC = () => {
         (item) => item.itemStockId === selectedItemId
       );
       if (selectedItem) {
-        navigate(`/scan/${selectedItem.itemStockId}/input`, {
-          state: {
-            itemName: selectedItem.itemName,
-            barcode: barcode,
-            currentStock: selectedItem.currentStock,
-          },
+        const params = new URLSearchParams({
+          barcode: barcode || "",
+          itemName: selectedItem.itemName,
+          currentStock: selectedItem.currentStock.toString(),
+          wholesalePrice: selectedItem.wholesalePrice.toString(),
         });
+
+        navigate(
+          `/scan/${selectedItem.itemStockId}/input?${params.toString()}`
+        );
       }
     }
   };

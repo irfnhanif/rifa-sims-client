@@ -23,11 +23,13 @@ export interface BarcodeScanResponse {
   itemStockId: string;
   itemName: string;
   currentStock: number;
+  wholesalePrice: number
 }
 
 export interface RecommendedBarcodeScanResponse {
   itemStockId: string;
   itemName: string;
   currentStock: number;
+  wholesalePrice: number;
   recommendationScore: number;
 }

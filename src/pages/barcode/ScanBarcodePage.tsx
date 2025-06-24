@@ -94,13 +94,24 @@ const ScanBarcodePage: React.FC = () => {
       }
 
       if (response.length === 1) {
-        navigate(`/scan/${response[0].itemStockId}/input`, {
-          state: { itemName: response[0].itemName, barcode: barcode, currentStock: response[0].currentStock },
+        // Use URL parameters instead of state
+        const searchParams = new URLSearchParams({
+          barcode: barcode,
+          itemName: response[0].itemName,
+          currentStock: response[0].currentStock.toString(),
+          wholesalePrice: response[0].wholesalePrice.toString(),
         });
+
+        navigate(
+          `/scan/${response[0].itemStockId}/input?${searchParams.toString()}`
+        );
       } else {
-        navigate("/scan/choose-item", {
-          state: { items: response, barcode: barcode },
+        const searchParams = new URLSearchParams({
+          barcode: barcode,
+          items: JSON.stringify(response), // Serialize the items array
         });
+
+        navigate(`/scan/choose-item?${searchParams.toString()}`);
       }
     },
     onError: () => {

@@ -13,20 +13,23 @@ import {
   CircularProgress,
   Paper,
 } from "@mui/material";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
-import { scanUpdateItemStock } from "../../api/stocks";
+import { fetchItemStockById, scanUpdateItemStock } from "../../api/stocks";
 import type { ScanStockChangeRequest } from "../../types/item-stock";
 import type { StockChangeType } from "../../types/stock-change-type";
 
 import RemoveIcon from "@mui/icons-material/RemoveCircleOutline";
+import { Edit } from "@mui/icons-material";
 import AddIcon from "@mui/icons-material/AddCircleOutline";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import { useAuth } from "../../helper/use-auth";
+import { UserRole } from "../../types/user-role";
 
 interface FormData {
   amount: number | string;
@@ -39,22 +42,24 @@ interface FormErrors {
   form?: string;
 }
 
-interface LocationState {
-  itemName?: string;
-  barcode?: string;
-  currentStock?: number;
-}
-
 const InputDataPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const location = useLocation();
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const { itemName = "Barang Tidak Dikenal", barcode, currentStock } =
-    /* cspell:disable-line */
-    (location.state as LocationState) || {};
+  const barcode = searchParams.get("barcode");
+  const itemNameFromParams = searchParams.get("itemName");
+  const currentStockFromParams = searchParams.get("currentStock");
+  const wholesalePriceFromParams = searchParams.get("wholesalePrice");
+
+  const { data: itemStock, isLoading: isLoadingItemStock } = useQuery({
+    queryKey: ["itemStock", id],
+    queryFn: () => fetchItemStockById(id!),
+    enabled: !!id,
+  });
 
   const primaryDarkColor = "#2D3648";
   const inputOutlineColor = "#CBD2E0";
@@ -66,6 +71,17 @@ const InputDataPage: React.FC = () => {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const itemName =
+    itemStock?.item?.name || itemNameFromParams || "Barang Tidak Dikenal";
+  const currentStock =
+    itemStock?.currentStock ??
+    (currentStockFromParams ? Number(currentStockFromParams) : undefined);
+  const wholesalePrice =
+    itemStock?.item?.wholesalePrice ??
+    (wholesalePriceFromParams ? Number(wholesalePriceFromParams) : undefined);
+
+  const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
+  
   const mutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ScanStockChangeRequest }) =>
       scanUpdateItemStock(id, data),
@@ -75,14 +91,10 @@ const InputDataPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
       queryClient.invalidateQueries({ queryKey: ["recommendItems"] });
-      
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
-          /* cspell:disable-line */
-          formData.changeType === "IN"
-            ? "masuk"
-            : "keluar" /* cspell:disable-line */
+          formData.changeType === "IN" ? "masuk" : "keluar"
         }.`,
       });
 
@@ -94,9 +106,15 @@ const InputDataPage: React.FC = () => {
       console.error("Error updating stock:", error);
       setErrors({
         form: error.message || "Gagal menyimpan data ke server.",
-      }); /* cspell:disable-line */
+      });
     },
   });
+
+  const handleEditItem = () => {
+    if (itemStock?.item?.id) {
+      navigate(`/items/${itemStock.item.id}/edit`);
+    }
+  };
 
   const handleNumericChange = (value: string) => {
     if (value === "" || /^[0-9\b]+$/.test(value)) {
@@ -196,6 +214,21 @@ const InputDataPage: React.FC = () => {
     mb: 1,
   };
 
+  if (isLoadingItemStock) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -209,7 +242,7 @@ const InputDataPage: React.FC = () => {
       }}
     >
       <Header
-        title="Masukkan Barang" /* cspell:disable-line */
+        title="Input Stok Barang"
         showBackButton={true}
         onBackClick={handleCancel}
       />
@@ -238,9 +271,7 @@ const InputDataPage: React.FC = () => {
         >
           {errors.form && (
             <Alert
-              severity={
-                errors.form.includes("Berhasil") ? "success" : "error"
-              } /* cspell:disable-line */
+              severity={errors.form.includes("Berhasil") ? "success" : "error"}
               sx={{ mb: 1 }}
             >
               {errors.form}
@@ -279,6 +310,7 @@ const InputDataPage: React.FC = () => {
                   gap: 0.5,
                   width: "fit-content",
                   mx: "auto",
+                  mb: 1,
                 }}
               >
                 <Typography
@@ -289,7 +321,7 @@ const InputDataPage: React.FC = () => {
                     color: primaryDarkColor,
                   }}
                 >
-                  Jumlah Stok: {/* cspell:disable-line */}
+                  Jumlah Stok:
                 </Typography>
                 <Typography
                   variant="body2"
@@ -306,10 +338,59 @@ const InputDataPage: React.FC = () => {
                 </Typography>
               </Box>
             )}
+            {isOwner && wholesalePrice !== undefined && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  width: "fit-content",
+                  mx: "auto",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontWeight: "600",
+                    color: primaryDarkColor,
+                  }}
+                >
+                  Harga Grosir:
+                </Typography>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontFamily: "Roboto, sans-serif",
+                    fontWeight: wholesalePrice <= 0 ? "bold" : "normal",
+                    color:
+                      wholesalePrice <= 0
+                        ? theme.palette.error.main
+                        : theme.palette.text.secondary,
+                  }}
+                >
+                  Rp{wholesalePrice.toLocaleString("id-ID")}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={handleEditItem}
+                  disabled={!itemStock?.item?.id}
+                  sx={{
+                    ml: 0.1,
+                    color: primaryDarkColor,
+                    "&:hover": {
+                      backgroundColor: "rgba(45, 54, 72, 0.08)",
+                    },
+                  }}
+                >
+                  <Edit sx={{ fontSize: 15 }} fontSize="inherit" />
+                </IconButton>
+              </Box>
+            )}
           </Paper>
 
           <Box>
-            <Typography sx={labelStyles}>Jumlah</Typography>
+            <Typography sx={labelStyles}>Jumlah</Typography>{" "}
             {/* cspell:disable-line */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <TextField
