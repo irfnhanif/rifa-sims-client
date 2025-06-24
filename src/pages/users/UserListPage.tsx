@@ -601,12 +601,14 @@ const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
       case 1:
         return {
           name: "Cabang 1" /* cspell:disable-line */,
-          address: "", // Empty as requested
+          address:
+            "Jl. Laksda Adi Sucipto No.352, Pandanwangi, Kec. Blimbing, Kota Malang, Jawa Timur 65126",
         };
       case 2:
         return {
           name: "Cabang 2" /* cspell:disable-line */,
-          address: "", // Empty as requested
+          address:
+            "Jl. Tlk. Grajakan No.KAV 24A, Pandanwangi, Kec. Blimbing, Kota Malang, Jawa Timur 65124",
         };
       default:
         return {
@@ -679,7 +681,7 @@ const BranchDetailDialog: React.FC<BranchDetailDialogProps> = ({
               color: theme.palette.text.secondary,
             }}
           >
-            <strong>Alamat {/* cspell:disable-line */}:</strong>
+            <strong>Alamat {/* cspell:disable-line */}: </strong>
             {branchInfo.address || "Belum diisi" /* cspell:disable-line */}
           </Typography>
         </Box>
