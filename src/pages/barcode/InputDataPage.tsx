@@ -13,7 +13,10 @@ import {
   CircularProgress,
   Paper,
 } from "@mui/material";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import Header from "../../components/Header";
@@ -31,6 +34,11 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { useAuth } from "../../helper/use-auth";
 import { UserRole } from "../../types/user-role";
 
+interface LocationState {
+  itemStockId?: string;
+  barcode?: string;
+}
+
 interface FormData {
   amount: number | string;
   changeType: StockChangeType | null;
@@ -45,20 +53,16 @@ interface FormErrors {
 const InputDataPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
-  const barcode = searchParams.get("barcode");
-  const itemNameFromParams = searchParams.get("itemName");
-  const currentStockFromParams = searchParams.get("currentStock");
-  const wholesalePriceFromParams = searchParams.get("wholesalePrice");
+  const { itemStockId, barcode } = (location.state as LocationState) || {};
 
   const { data: itemStock, isLoading: isLoadingItemStock } = useQuery({
-    queryKey: ["itemStock", id],
-    queryFn: () => fetchItemStockById(id!),
-    enabled: !!id,
+    queryKey: ["itemStock", itemStockId],
+    queryFn: () => fetchItemStockById(itemStockId!),
+    enabled: !!itemStockId,
   });
 
   const primaryDarkColor = "#2D3648";
@@ -72,29 +76,29 @@ const InputDataPage: React.FC = () => {
   const [errors, setErrors] = useState<FormErrors>({});
 
   const itemName =
-    itemStock?.item?.name || itemNameFromParams || "Barang Tidak Dikenal";
-  const currentStock =
-    itemStock?.currentStock ??
-    (currentStockFromParams ? Number(currentStockFromParams) : undefined);
-  const wholesalePrice =
-    itemStock?.item?.wholesalePrice ??
-    (wholesalePriceFromParams ? Number(wholesalePriceFromParams) : undefined);
+    itemStock?.item?.name || "Barang Tidak Dikenal"; /* cspell:disable-line */
+  const currentStock = itemStock?.currentStock;
+  const wholesalePrice = itemStock?.item?.wholesalePrice;
 
   const isOwner = user?.roles?.includes(UserRole.OWNER) ?? false;
-  
+
   const mutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: ScanStockChangeRequest }) =>
       scanUpdateItemStock(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["itemStocks"] });
-      queryClient.invalidateQueries({ queryKey: ["itemStock", id] });
+      queryClient.invalidateQueries({
+        queryKey: ["itemStock", itemStockId],
+      });
       queryClient.invalidateQueries({ queryKey: ["scanHistory"] });
       queryClient.invalidateQueries({ queryKey: ["stockAuditLogs"] });
       queryClient.invalidateQueries({ queryKey: ["recommendItems"] });
 
       setErrors({
         form: `Berhasil menyimpan ${formData.amount} barang sebagai stok ${
-          formData.changeType === "IN" ? "masuk" : "keluar"
+          formData.changeType === "IN"
+            ? "masuk"
+            : "keluar" /* cspell:disable-line */
         }.`,
       });
 
@@ -105,7 +109,9 @@ const InputDataPage: React.FC = () => {
     onError: (error: Error) => {
       console.error("Error updating stock:", error);
       setErrors({
-        form: error.message || "Gagal menyimpan data ke server.",
+        form:
+          error.message ||
+          "Gagal menyimpan data ke server." /* cspell:disable-line */,
       });
     },
   });
@@ -170,7 +176,7 @@ const InputDataPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!id) return;
+    if (!itemStockId) return;
 
     setErrors({});
     const { isValid, newErrors } = validateForm();
@@ -184,7 +190,7 @@ const InputDataPage: React.FC = () => {
       amount: Number(formData.amount),
     };
 
-    mutation.mutate({ id, data });
+    mutation.mutate({ id: itemStockId, data });
   };
 
   const handleCancel = () => {
@@ -214,6 +220,17 @@ const InputDataPage: React.FC = () => {
     mb: 1,
   };
 
+  if (!itemStockId) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          ID item tidak ditemukan. Silakan kembali dan scan ulang.{" "}
+          {/* cspell:disable-line */}
+        </Alert>
+      </Box>
+    );
+  }
+
   if (isLoadingItemStock) {
     return (
       <Box
@@ -225,6 +242,16 @@ const InputDataPage: React.FC = () => {
         }}
       >
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!itemStock) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Data barang tidak ditemukan. Silakan kembali dan coba lagi.{/* cspell:disable-line */}
+        </Alert>
       </Box>
     );
   }
@@ -242,7 +269,7 @@ const InputDataPage: React.FC = () => {
       }}
     >
       <Header
-        title="Input Stok Barang"
+        title="Input Stok Barang" /* cspell:disable-line */
         showBackButton={true}
         onBackClick={handleCancel}
       />
@@ -271,7 +298,9 @@ const InputDataPage: React.FC = () => {
         >
           {errors.form && (
             <Alert
-              severity={errors.form.includes("Berhasil") ? "success" : "error"}
+              severity={
+                errors.form.includes("Berhasil") ? "success" : "error"
+              } /* cspell:disable-line */
               sx={{ mb: 1 }}
             >
               {errors.form}
@@ -321,7 +350,7 @@ const InputDataPage: React.FC = () => {
                     color: primaryDarkColor,
                   }}
                 >
-                  Jumlah Stok:
+                  Jumlah Stok: {/* cspell:disable-line */}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -356,7 +385,7 @@ const InputDataPage: React.FC = () => {
                     color: primaryDarkColor,
                   }}
                 >
-                  Harga Grosir:
+                  Harga Grosir: {/* cspell:disable-line */}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -383,7 +412,7 @@ const InputDataPage: React.FC = () => {
                     },
                   }}
                 >
-                  <Edit sx={{ fontSize: 15 }} fontSize="inherit" />
+                  <Edit sx={{ fontSize: 15 }} />
                 </IconButton>
               </Box>
             )}
