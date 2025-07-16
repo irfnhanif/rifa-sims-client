@@ -42,6 +42,7 @@ interface NavItem {
   icon: React.ReactElement;
   path: string;
   ownerOnly?: boolean;
+  employeeOnly?: boolean;
 }
 
 interface ProfileMenuItem {
@@ -85,10 +86,11 @@ const HomePage: React.FC = () => {
       ownerOnly: true,
     },
     {
-      id: "scan-barcode",
-      label: "Scan Barcode",
+      id: "pemindai-barcode" /* cspell:disable-line */,
+      label: "Pemindai Barcode" /* cspell:disable-line */,
       icon: <QrCodeScannerIcon />,
       path: "/scan",
+      employeeOnly: true,
     },
   ];
 
@@ -151,9 +153,17 @@ const HomePage: React.FC = () => {
     },
   ];
 
-  const filteredNavigationItems = navigationItems.filter(
-    (item) => !item.ownerOnly || isOwner
-  );
+  const filteredNavigationItems = navigationItems.filter((item) => {
+    if (item.ownerOnly && !isOwner) {
+      return false;
+    }
+
+    if (item.employeeOnly && isOwner) {
+      return false;
+    }
+
+    return true;
+  });
 
   const filteredProfileMenuItems = profileMenuItems.filter(
     (item) => !item.ownerOnly || isOwner
@@ -228,7 +238,6 @@ const HomePage: React.FC = () => {
         }}
       >
         <Box sx={{ p: 2 }}>
-          {/* Header */}
           <Box
             sx={{
               display: "flex",
@@ -249,7 +258,6 @@ const HomePage: React.FC = () => {
             </IconButton>
           </Box>
 
-          {/* User Info */}
           <Box
             sx={{
               display: "flex",
@@ -418,7 +426,7 @@ const HomePage: React.FC = () => {
         }}
       >
         <Typography variant="body2" color="text.secondary">
-          &copy; {new Date().getFullYear()} Rifa-SIMS.
+          &copy; {new Date().getFullYear()} Rifa-SIMS.{" "}
           {/* cspell:disable-line */}
           All rights reserved.
         </Typography>
