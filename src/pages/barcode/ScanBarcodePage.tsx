@@ -38,6 +38,7 @@ import StopIcon from "@mui/icons-material/Stop";
 import CameraAltIcon from "@mui/icons-material/CameraAlt";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import HistoryIcon from "@mui/icons-material/History";
+import { detectWebEngine } from "../../helper/detect-web-engine";
 
 interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
@@ -46,6 +47,7 @@ interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
 const ScanBarcodePage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const engine = detectWebEngine();
   const primaryDarkColor = "#2D3648";
   const scannerAreaBackground = "#EDF0F7";
   const scannerAreaOutline = `2px solid ${primaryDarkColor}`;
@@ -477,6 +479,119 @@ const ScanBarcodePage: React.FC = () => {
     return "Mulai Pemindaian";
   };
 
+  const getEngineSpecificStyles = () => {
+    if (engine.isWebKit) {
+      return {
+        container: {
+          flexGrow: 1,
+          position: "relative" as const,
+          background: scannerAreaBackground,
+          border: scannerAreaOutline,
+          borderRadius: "4px",
+          overflow: "hidden",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+          maxHeight: "60vh",
+          width: "100%",
+          maxWidth: "100%",
+        },
+        video: {
+          width: "100%",
+          height: "100%",
+          objectFit: "contain" as const,
+          display: isScanning ? "block" : "none",
+          maxWidth: "100%",
+          maxHeight: "100%",
+        },
+        overlay: {
+          position: "absolute" as const,
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(70%, 300px)",
+          height: "min(30%, 120px)",
+          border: "2px solid rgba(255,255,255,0.7)",
+          borderRadius: "8px",
+          boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+        },
+      };
+    } else if (engine.isGecko) {
+      return {
+        container: {
+          flexGrow: 1,
+          position: "relative" as const,
+          background: scannerAreaBackground,
+          border: scannerAreaOutline,
+          borderRadius: "4px",
+          overflow: "hidden",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+          maxHeight: "60vh",
+          aspectRatio: "4/3",
+        },
+        video: {
+          width: "100%",
+          height: "100%",
+          objectFit: "cover" as const,
+          display: isScanning ? "block" : "none",
+          maxWidth: "100%",
+          maxHeight: "100%",
+        },
+        overlay: {
+          position: "absolute" as const,
+          width: "80%",
+          height: "50%",
+          maxWidth: "450px",
+          maxHeight: "150px",
+          border: "2px solid rgba(255,255,255,0.7)",
+          borderRadius: "8px",
+          boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+        },
+      };
+    } else {
+      return {
+        container: {
+          flexGrow: 1,
+          position: "relative" as const,
+          background: scannerAreaBackground,
+          border: scannerAreaOutline,
+          borderRadius: "4px",
+          overflow: "hidden",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "400px",
+          maxHeight: "60vh",
+          aspectRatio: "4/3",
+        },
+        video: {
+          width: "100%",
+          height: "100%",
+          objectFit: "cover" as const,
+          display: isScanning ? "block" : "none",
+          maxWidth: "100%",
+          maxHeight: "100%",
+        },
+        overlay: {
+          position: "absolute" as const,
+          width: "80%",
+          height: "50%",
+          maxWidth: "450px",
+          maxHeight: "150px",
+          border: "2px solid rgba(255,255,255,0.7)",
+          borderRadius: "8px",
+          boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
+        },
+      };
+    }
+  };
+
+  const engineStyles = getEngineSpecificStyles();
+
   return (
     <Box
       sx={{
@@ -528,36 +643,13 @@ const ScanBarcodePage: React.FC = () => {
             </Tooltip>
           </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              flexGrow: 1,
-              position: "relative",
-              background: scannerAreaBackground,
-              border: scannerAreaOutline,
-              borderRadius: "4px",
-              overflow: "hidden",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "400px",
-              maxHeight: "60vh",
-              aspectRatio: "4/3",
-            }}
-          >
+          <Paper elevation={0} sx={engineStyles.container}>
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: isScanning ? "block" : "none",
-                maxWidth: "100%",
-                maxHeight: "100%",
-              }}
+              style={engineStyles.video}
             />
 
             {(isLoadingCameras ||
@@ -685,20 +777,7 @@ const ScanBarcodePage: React.FC = () => {
                 </Box>
               )}
 
-            {isScanning && (
-              <Box
-                sx={{
-                  position: "absolute",
-                  width: "80%",
-                  height: "50%",
-                  maxWidth: "450px",
-                  maxHeight: "150px",
-                  border: "2px solid rgba(255,255,255,0.7)",
-                  borderRadius: "8px",
-                  boxShadow: "0 0 0 9999px rgba(0,0,0,0.5)",
-                }}
-              />
-            )}
+            {isScanning && <Box sx={engineStyles.overlay} />}
           </Paper>
 
           <Box
