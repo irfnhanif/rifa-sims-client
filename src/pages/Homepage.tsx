@@ -42,7 +42,6 @@ interface NavItem {
   icon: React.ReactElement;
   path: string;
   ownerOnly?: boolean;
-  employeeOnly?: boolean;
 }
 
 interface ProfileMenuItem {
@@ -90,7 +89,6 @@ const HomePage: React.FC = () => {
       label: "Pemindai Barcode" /* cspell:disable-line */,
       icon: <QrCodeScannerIcon />,
       path: "/scan",
-      employeeOnly: true,
     },
   ];
 
@@ -153,17 +151,9 @@ const HomePage: React.FC = () => {
     },
   ];
 
-  const filteredNavigationItems = navigationItems.filter((item) => {
-    if (item.ownerOnly && !isOwner) {
-      return false;
-    }
-
-    if (item.employeeOnly && isOwner) {
-      return false;
-    }
-
-    return true;
-  });
+  const filteredNavigationItems = navigationItems.filter(
+    (item) => !item.ownerOnly || isOwner
+  );
 
   const filteredProfileMenuItems = profileMenuItems.filter(
     (item) => !item.ownerOnly || isOwner
